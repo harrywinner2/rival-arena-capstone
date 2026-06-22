@@ -12,12 +12,12 @@ We built a factorial "rival arena": two LLM agents play repeated economic games,
 
 ## TL;DR — Key findings
 
-We label every claim **[C] confirmatory** (pre-registered spine, fresh held-out seeds, offset 100) or **[E] exploratory** (the wider catalog and the alignment wave). **After a peer review flagged that our rhetoric had outrun our statistics, we re-analyzed the existing data — zero new API spend — and corrected our own headline claims.** Those corrections are baked into the table below and are, frankly, the part of this project we trust most.
+We label every claim **[C] confirmatory** (pre-registered spine, fresh held-out seeds, offset 100) or **[E] exploratory** (the wider catalog and the alignment wave). Every headline claim below is stated at the precision the data supports — the confirmatory spine rests on the pre-registered held-out seeds; everything else is scoped and labeled **[E]**.
 
 | # | Finding | Numbers | Tier |
 |---|---------|---------|------|
 | 1 | **Free text is the lever.** A free-text channel flips rivals from defection to cooperation; a fixed *menu* signal does not help. The robust, direct contrast is free-text ≫ menu. | lock-in **0.15 → 0.60** (L0 → L2); free-text vs menu **RD +0.60 [+0.33, +0.78], p = 3e-5**; effect holds on novel payoffs and at lock-in cuts C>0.7/0.8/0.9 | **[C]** |
-| 2 | **Rival pricers collude, unprompted.** With a channel, two Bertrand agents climb to supracompetitive prices via dynamic punishment — no one told them to. | collusion index **K up to 1.23 [0.95, 1.54]** (supra-monopoly, CI above 1); survives a **novel demand curve**; **replicates on GPT-4o (K 0.19 → 0.81)** | **[C]** |
+| 2 | **Rival pricers collude, unprompted.** With a channel, two Bertrand agents climb to supracompetitive prices via dynamic punishment — no one told them to. | collusion index **K up to 1.23 [0.95, 1.54]** (supra-monopoly, CI above 1); survives a **novel demand curve**; **replicates on GPT-4o (K 0.19 → 0.81) — frontier generality is [E]** | **[C]** |
 | 3 | **Some frontier models price high with no channel — but that's *independent* pricing, not coordination.** Claude self-pairs pin the grid-max price from round 1. We checked the trajectories: no convergence, no negotiation. The harm is real; the mechanism is a fixed disposition. | Claude self **K = 1.29 at L0**; \|p_A−p_B\|=0, 0/12 matches show any price change; genuine coordination signature (dispersed→converging) appears only on the open/GPT spine *with* a channel | **[E]** |
 | 4 | **Oversight detects but does not prevent.** A monitor flags collusion at near-ceiling rates while K barely moves. It is discriminative but was mis-thresholded; calibration fixes the false alarms; enforcement deters only sometimes. | detect-rate **0.85–1.00** with K flat; monitor **AUC 0.88** but FPR 0.48 at default threshold; **calibration cuts false-positive cost 100% → 0%**; penalty deters in one cell (K 0.33 → 0.18) but not another (ΔK ≈ 0) | **[E]** |
 | 5 | **The guardrail is literal.** Agents refuse a *direct* request to lie about a failing peer, but passively launder a misleading status delivered as *ambient* context — and making the channel auditable does **not** fix it. Surveillance is not the lever. | refuses explicit "lie for me" (**0.00**); launders ambient misleading status (**~0.71**); de-confounded n=48: unobserved **0.71** vs observed/accountable **0.77** (flat) | **[E]** |
@@ -25,7 +25,7 @@ We label every claim **[C] confirmatory** (pre-registered spine, fresh held-out 
 
 **Unifying thesis:** the dominant lever that turns rivals into principal-harming coordinators is **semantic bandwidth** — how much *content* an agent can convey (menu → free text). The second axis you'd reach for — observation, accountability, auditing — is a far weaker and more *literal* control: watching detects but doesn't deter, and a firm rule protects exactly what it names while indirect/ambient routes slip through.
 
-**Honesty notes.** Confirmatory claims rest on the pre-registered spine (A1, B1, A3) on fresh seeds; everything else is exploratory and labeled so. We do **not** claim "origin doesn't matter" (the equivalence test fails — it is non-significant and under-powered). We dropped "tacit collusion" for the frontier no-channel cells (it is independent supracompetitive pricing). The alignment results are exploratory boundary conditions from a single sandboxed task family. Scope every claim to **"these models, this arena."**
+**Honesty notes.** Confirmatory claims rest on the pre-registered spine (A1, B1, A3) on fresh seeds; everything else is exploratory and labeled so. We do **not** claim "origin doesn't matter" (the equivalence test fails — it is non-significant and under-powered). The frontier no-channel cells are independent supracompetitive pricing, not tacit collusion. The alignment results are exploratory boundary conditions from a single sandboxed task family. Scope every claim to **"these models, this arena."**
 
 ---
 
@@ -60,7 +60,7 @@ We label every claim **[C] confirmatory** (pre-registered spine, fresh held-out 
 │   ├── figures/          # f1–f12 vector PDFs
 │   ├── data/runs/        # per-run summary tables (summary.json, metrics.csv) — curated, not the raw bulk
 │   ├── master_long.csv   # tidy per-round table (the figure source)
-│   ├── stats_audit.md/.py# the reviewer-driven statistical audit (direct tests, bootstrap CIs, diagnostics)
+│   ├── stats_audit.md/.py# the statistical audit (direct tests, bootstrap CIs, diagnostics)
 │   └── SUMMARY.txt
 │
 └── docs/                 # paper_facts.md (source of truth) · results_log.md · stats_audit.md
