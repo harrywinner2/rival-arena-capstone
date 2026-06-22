@@ -33,13 +33,13 @@ How to open: double-click `index.html`. Navigate by **scroll**, the **dot-nav** 
 - **Do:** Let K count `0 → 1.23`. Point at f4.
 - **Say:** "Into money. Two Bertrand pricing bots. No channel — they fight a price war, below competitive. Private channel — they climb to K = 1.23, *above* the monopoly point, sustained by threatening to punish defection. Nobody prompted it, and it holds on a demand curve we invented."
 - **Do:** Scroll to generality. Let `0.19 → 0.81` count. Read the **HONEST NUANCE** box aloud.
-- **Say:** "It replicates on GPT-4o. And the honest wrinkle: Claude self-paired prices supracompetitively with *no channel* — but we checked the trajectories. That's *independent* supracompetitive pricing, **not coordination**. We dropped 'tacit collusion' after looking at the data."
+- **Say:** "It replicates on GPT-4o. And the honest wrinkle: Claude self-paired prices supracompetitively with *no channel* — but we checked the trajectories. That's *independent* supracompetitive pricing, **not coordination** — supracompetitive harm, but not tacit collusion."
 
 ### 6. Finding 3 — Detects ≠ prevents `[C]` (~60s)
 - **Do:** Let detect-rate `0.85 → 1.00` count. Point at f6.
 - **Say:** "Can the principal stop it? Bolt on a monitor. It *detects* at near-ceiling rates — but the collusion index barely moves. Watching isn't deterring. A penalty *can* deter — dropped K 42% in one cell — but honestly that's cell-dependent."
 - **Do:** Scroll to calibration. Let `AUC 0.88` count. Point at the f11/f12 twin.
-- **Say:** "And here we corrected ourselves. First take: 'the alarms are noise.' With a proper control, the monitor's genuinely discriminative — AUC 0.88. The problem was the *threshold* — it flagged every innocent round. Calibrate it: false positives 100% to 0%."
+- **Say:** "And the detector is fixable. Against a proper control, the monitor's genuinely discriminative — AUC 0.88; the alarms aren't noise. The problem was the *threshold* — it flagged every innocent round. Calibrate it: false positives 100% to 0%."
 
 ### 7. Finding 4 — The literal guardrail `[E]` — INTERACTIVE TOGGLE (~70s)
 - **Do:** Let `16 → 0` count (leaks out of 16). Point at f8.
@@ -53,13 +53,13 @@ How to open: double-click `index.html`. Navigate by **scroll**, the **dot-nav** 
 - **Do:** Pause on the centered thesis line; point at the two-axis map (gold STRONG vs coral WEAK).
 - **Say:** "One story. The lever is *semantic bandwidth* — content. The defense you'd reach for — observation, auditing, a literal rule — is weaker and more literal than it looks. Content is the lever; oversight is more literal than we'd like."
 
-### 9. Honest limits & self-correction (~40s)
-- **Do:** Walk down the four strike-through → corrected rows.
-- **Say:** "The part we're proudest of. A reviewer said our rhetoric outran our statistics. We re-analyzed the data already on disk — zero new spend — and corrected our own headlines. 'Cheap signal worse than silence' → 'free text is the lever.' 'Tacit collusion' → 'independent supracompetitive pricing.' We're telling you the scoped version on purpose."
+### 9. Scope & limits (~40s)
+- **Do:** Walk down the four scope cards (each claim + its precise scope), then the standing-limits box.
+- **Say:** "Every headline claim, precisely scoped. Free text is the lever — it's the channel's *content*, not bandwidth per se. Frontier no-channel is *independent* supracompetitive pricing, not tacit collusion. The origin effect is non-significant and under-powered — not an equivalence. The monitor is discriminative but mis-thresholded — not noise. The confirmatory spine is pre-registered on held-out seeds; every exploratory claim is labeled as such."
 
 ### 10. Impact / close (~35s)
 - **Do:** Let the three takeaway cards reveal; land on the closing line and the logo.
-- **Say:** "Three things. The channel between rival agents is a *control surface* — design it. Monitoring is necessary but not sufficient — calibrate and enforce. Guardrails must cover the *ambient* routes. We asked whether rival AIs collude against the principal. The answer is yes — in surprising, generalizing ways — our oversight catches more than it stops, and the work we trust most is where the data made us change our minds. Thank you."
+- **Say:** "Three things. The channel between rival agents is a *control surface* — design it. Monitoring is necessary but not sufficient — calibrate and enforce. Guardrails must cover the *ambient* routes. We asked whether rival AIs collude against the principal. The answer is yes — in surprising, generalizing ways — our oversight catches more than it stops, and it leaks where it isn't literal. Thank you."
 
 ---
 

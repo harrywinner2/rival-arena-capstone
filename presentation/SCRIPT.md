@@ -3,16 +3,16 @@
 
 **One document, three artifacts.** This script is the single source for (1) the slide deck,
 (2) the narrated explainer video — the VOICEOVER blocks are the audio track, and (3) the
-interactive website. Every number traces to `docs/paper_facts.md §11` (the AUTHORITATIVE,
-peer-review-corrected claim-scoping) and `docs/stats_audit.md`. Figures live in
+interactive website. Every number traces to `docs/paper_facts.md §11` (the AUTHORITATIVE
+claim-scoping) and `docs/stats_audit.md`. Figures live in
 `paper/figures/` (f1, f4, f6, f8, f9, f10, f11, f12).
 
 > **THE SPINE (tie every beat back to this):** *Can AIs we deploy as RIVALS — pricing bots,
 > negotiating agents, competing assistants — cooperate or collude in surprising ways, against
 > the principal who deployed them?*
 
-> **Honesty contract for this talk:** we corrected our own headline claims after a peer review.
-> We lead with that. We say "free text is the lever," not "cheap signal worse than silence."
+> **Claim-scoping contract for this talk:** every headline claim is stated at the precision the
+> data supports. We say "free text is the lever," not "cheap signal worse than silence."
 > We say "independent supracompetitive pricing," not "tacit collusion," for the frontier
 > no-channel cells. We scope the alignment results as exploratory boundary conditions.
 
@@ -33,9 +33,8 @@ peer-review-corrected claim-scoping) and `docs/stats_audit.md`. Figures live in
 > doesn't *prevent* it, and it's badly mis-thresholded until you calibrate it. And the
 > guardrails are **literal** — agents refuse an explicit request to lie, but will passively
 > launder a misleading status handed to them as ambient context. Bottom line: rival AIs can
-> coordinate against us in surprising ways, our oversight catches more than it stops, and — the
-> part we're proudest of — when a reviewer said our rhetoric outran our statistics, we
-> re-analyzed and *corrected our own claims*.
+> coordinate against us in surprising ways, our oversight catches more than it stops, and it
+> leaks where it isn't literal.
 
 ---
 
@@ -154,8 +153,8 @@ GPT-4o — give it a channel and K goes from 0.19 to 0.81. And there's a more al
 some frontier models, like Claude, price *supracompetitively from round one* with no channel at
 all. But we have to be precise — we checked the price trajectories, and that's *not*
 coordination. Both agents independently pin the maximum price and never adjust; there's no
-convergence, no negotiation. The consumer harm is real, but the mechanism is a fixed disposition,
-not collusion. We dropped the word 'tacit collusion' after we looked at the data."
+convergence, no negotiation. The consumer harm is real, but the mechanism is a fixed disposition —
+supracompetitive harm without tacit collusion."
 
 ---
 
@@ -177,9 +176,9 @@ another pricing setting the same penalty did nothing."
 (`f12_m2_governance.pdf`) — false-positive cost **1.00 → 0.00** after calibration. Callout: *"The
 monitor is DISCRIMINATIVE (AUC 0.88) but MIS-THRESHOLDED. Calibration cuts false positives from
 100% to 0%."*
-**VOICEOVER:** "But the monitor isn't useless — and this is where we corrected ourselves. Our
-first take was 'the alarms are just noise.' When we built a proper non-colluding control, the
-monitor turned out to be genuinely *discriminative* — area-under-curve of 0.88. The problem was
+**VOICEOVER:** "But the monitor isn't useless. Against a proper non-colluding control, the
+monitor turns out to be genuinely *discriminative* — area-under-curve of 0.88; the alarms aren't
+noise. The problem was
 the *threshold*: at its default operating point it penalized every innocent round. Re-calibrate
 the threshold and the false-positive cost drops from a hundred percent to zero. So the lesson for
 a principal is constructive: monitoring works, but only if you calibrate it — and even then,
@@ -243,21 +242,21 @@ content is the lever, and oversight is more literal than we'd like to believe."
 
 ---
 
-### Beat 15 — HONEST LIMITATIONS & OUR SELF-CORRECTION
-**ON-SCREEN:** Two columns. **What we corrected after peer review:** *"free text is the lever"
-(not "cheap signal worse than silence") · "independent supracompetitive pricing" (not "tacit
-collusion") · "non-significant, under-powered moderation" on origin (not "equivalence") · monitor
-is "discriminative but mis-thresholded" (not "noise").* **Standing limits:** *four open models +
-3 frontier families, English-only, one scaffold · hosted quantization unpinned, frontier cells
-unstable · small-n exploratory alignment wave (n=8–16) · single novel-demand family · alignment =
-exploratory boundary conditions.*
-**VOICEOVER:** "Now the part we're actually proudest of. A peer reviewer told us our rhetoric had
-outrun our statistics. So we re-analyzed the data we already had — no new spend — and corrected
-our own headline claims. 'Cheap signal worse than silence' became 'free text is the lever,'
-because that's what the test actually supports. 'Tacit collusion' became 'independent
-supracompetitive pricing.' We pulled back an equivalence claim on origin we couldn't earn. And
-the limits are real: a handful of models, English only, small samples on the alignment side, one
-novel demand curve. We're telling you the scoped version on purpose."
+### Beat 15 — SCOPE & LIMITATIONS
+**ON-SCREEN:** Two columns. **What the data supports — and what it does not:** *"free text is the
+lever" — the channel's content, not bandwidth per se · "independent supracompetitive pricing,"
+not "tacit collusion," for frontier no-channel · origin moderation "non-significant, under-powered,"
+not "equivalence" · monitor "discriminative but mis-thresholded," not "noise."* **Standing limits:**
+*four open models + 3 frontier families, English-only, one scaffold · hosted quantization unpinned,
+frontier cells unstable · small-n exploratory alignment wave (n=8–16) · single novel-demand family ·
+alignment = exploratory boundary conditions.*
+**VOICEOVER:** "Every headline claim, precisely scoped. The lever is *free text* — the channel's
+content, not bandwidth per se. The frontier no-channel result is *independent* supracompetitive
+pricing, not tacit collusion. On origin the moderation is non-significant and under-powered — we
+don't claim equivalence. The monitor is discriminative but mis-thresholded — not noise. The
+confirmatory spine is pre-registered on held-out seeds; every exploratory claim is labeled as such.
+And the limits are real: a handful of models, English only, small samples on the alignment side,
+one novel demand curve."
 
 ---
 
@@ -266,15 +265,15 @@ novel demand curve. We're telling you the scoped version on purpose."
 rival agents is a control surface — design it. (2) Monitoring is necessary but not sufficient —
 calibrate it AND enforce. (3) Guardrails must cover indirect/ambient routes, not just explicit
 requests.* Final line: *"Rival AIs can coordinate against us in surprising ways. We measured when,
-showed our oversight catches more than it stops — and corrected our own claims when the data said
-so."* Repo / paper / live demo links.
+and showed a principal's oversight catches more than it stops — and leaks where it isn't
+literal."* Repo / paper / live demo links.
 **VOICEOVER:** "So why should you care? Three things. First, the communication channel between
 rival agents is a *control surface* — if you're deploying competing agents, the bandwidth you
 give them is a safety decision. Second, monitoring is necessary but not sufficient: calibrate it,
 and pair it with real enforcement. Third, guardrails have to cover the *ambient* routes, not just
 the explicit asks. We set out to ask whether rival AIs collude against the principal. The answer
-is yes — in surprising, generalizing ways — our oversight catches more than it stops, and the
-work we trust most is the work where the data made us change our minds. Thank you."
+is yes — in surprising, generalizing ways — our oversight catches more than it stops, and it
+leaks where it isn't literal. Thank you."
 
 ---
 
@@ -319,21 +318,17 @@ is present. For the Claude *no-channel* cell at K = 1.29, we explicitly checked 
 trajectories and it is **not** coordination — both agents independently pin the maximum price from
 round one, zero adjustment, zero convergence in all 12 matches, K flat from the first round. So we
 call that "independent supracompetitive pricing." The consumer *harm* is identical; the
-*mechanism* is a fixed disposition. We dropped the "tacit collusion" language precisely because
-the diagnostic didn't support it.
+*mechanism* is a fixed disposition — the diagnostic does not support "tacit collusion."
 
-**Q6 — "Why did you change your claims mid-project? Doesn't that undermine confidence in the
-results?"**
-A: The opposite — it's why you *should* trust them. A peer reviewer flagged that our rhetoric had
-outrun our statistics. We re-analyzed only the data already on disk — zero new API spend — ran
-direct contrast tests, bootstrap CIs, threshold sensitivity, and a TOST equivalence check, and we
-softened or corrected every claim the data didn't support: "free text is the lever," "independent
-pricing," "under-powered moderation," "discriminative but mis-thresholded." De-confounding our own
-headlines is the integrity story, not a weakness.
+**Q6 — "How do you know your headline claims aren't overstated?"**
+A: Each one is held to what the diagnostic supports. We ran direct contrast tests, bootstrap CIs,
+threshold sensitivity, and a TOST equivalence check, and we state every claim at that precision:
+"free text is the lever," "independent supracompetitive pricing," "non-significant, under-powered
+moderation," "discriminative but mis-thresholded." The confirmatory spine is pre-registered on
+held-out seeds; everything exploratory is labeled as such.
 
 **Q7 — "Does the monitor result mean monitoring is useless?"**
-A: No — and we corrected ourselves on exactly this. Our first read was "the alarms are noise."
-When we built a proper non-colluding control, the monitor turned out to be genuinely
+A: No. Against a proper non-colluding control, the monitor turns out to be genuinely
 discriminative, AUC 0.88. The real problem was the *threshold*: at its default it flagged every
 innocent round. Calibrating it cuts the false-positive cost from 100% to 0%. So the honest
 finding is "discriminative but mis-thresholded," and detection still doesn't equal prevention —
@@ -341,8 +336,8 @@ you need calibration *and* enforcement, and even enforcement's deterrence is cel
 
 **Q8 — "You labeled some models by 'national origin.' Isn't that a confounded and loaded
 variable?"**
-A: Agreed, and we demoted it. Origin is confounded with family, size, quantization, serving stack,
-and fine-tuning — it's a proxy, not a clean variable. Statistically, the channel explains roughly
+A: Agreed — it's a proxy, not a clean variable. Origin is confounded with family, size,
+quantization, serving stack, and fine-tuning. Statistically, the channel explains roughly
 20× more variance than origin, and the biggest spread is *within* origin groups, not between. But
 we do *not* claim equivalence: the TOST fails at every defensible bound, so the honest statement
 is "origin moderation is non-significant and under-powered" — we can't rule out a moderate effect,
