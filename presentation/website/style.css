@@ -13,7 +13,7 @@
 }
 
 *{ box-sizing:border-box; margin:0; padding:0; }
-html{ scroll-behavior:smooth; }
+html{ scroll-behavior:smooth; scroll-snap-type:y proximity; }
 body{
   font-family:"Inter",system-ui,sans-serif;
   background:var(--bg0);
@@ -75,7 +75,11 @@ q{ font-style:italic; color:var(--ink); }
 @media (max-width:780px){ #dotnav{ display:none; } }
 
 /* ---------- layout primitives ---------- */
-section{ position:relative; padding:9vh 6vw; }
+/* Every section is at least one screen tall and snaps into view. min-height (not height)
+   means a section taller than the viewport simply overflows and is scrolled through
+   manually; proximity snapping then catches the next one. */
+section{ position:relative; padding:9vh 6vw; min-height:100vh;
+  display:flex; flex-direction:column; justify-content:center; scroll-snap-align:start; }
 .wrap{ max-width:var(--maxw); margin:0 auto; }
 .center{ text-align:center; }
 .kicker{
@@ -278,6 +282,15 @@ section{ position:relative; padding:9vh 6vw; }
 .corr .was{ color:var(--muted); text-decoration:line-through; text-decoration-color:rgba(255,107,107,.6); font-size:.95rem; }
 .corr .arrow{ color:var(--gold); font-size:1.3rem; }
 .corr .now{ color:var(--good); font-weight:600; font-size:.98rem; }
+/* scope & limitations cards */
+.scope-grid{ display:grid; gap:.9rem; max-width:920px; margin:2.4rem auto; }
+.scope{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.35fr); gap:1.4rem; align-items:baseline;
+  background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-left:3px solid var(--good);
+  border-radius:14px; padding:1.05rem 1.4rem; }
+.scope .claim{ color:var(--good); font-weight:700; font-size:1.02rem; line-height:1.35; }
+.scope .scope-note{ color:var(--muted); font-size:.93rem; }
+@media(max-width:620px){ .scope{ grid-template-columns:1fr; gap:.5rem; } }
+
 .limits{ background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:18px;
   padding:1.8rem; max-width:900px; margin:0 auto; text-align:center; }
 .limits h3{ font-size:1.1rem; margin-bottom:.8rem; color:var(--gold); }
