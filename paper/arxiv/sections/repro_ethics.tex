@@ -1,0 +1,44 @@
+\section{Reproducibility and Ethics}
+\label{sec:repro}
+
+\paragraph{Artifact release.}
+We release the full reproducibility package alongside the paper: the complete prompt
+templates and system messages for every game and alignment scenario; the exact model
+identifiers and routing configuration; all random seeds (including the held-out confirmatory
+offset 100); the pre-registered analysis specifications for the spine (A1, B1, A3); per-run
+\texttt{manifest.json} files; the tidy per-round tables (\texttt{rounds\_long.csv}) that
+back the figures; the raw per-condition counts and Wilson intervals (Appendix~\ref{app:stats});
+and the figure-generation scripts (\texttt{scripts/paper\_figures.py}, zero API spend). Of the
+nine figures, only the cooperation-over-rounds curve (Fig.~\ref{fig:f2}) is drawn from raw
+per-round data; the rest are summary statistics locked to the figures and tables herein so
+that figures and reported numbers cannot diverge.
+
+\paragraph{Infrastructure.}
+All inference routes through LiteLLM to OpenRouter. To keep long, multi-model rounds from
+stalling on credit exhaustion, we built and unit-tested an automatic key-failover layer that
+switches to a backup key on a credit-exhaustion ($402$) response ($8$ unit tests). It is
+released as part of the harness; in this round it never fired live (the full round cost
+$\approx\$7$, well under budget), so it is reported as a tested safety net rather than a
+load-bearing dependency of the results.
+
+\paragraph{Two-speed integrity.}
+The confirmatory spine was pre-registered and run only on fresh held-out seeds after the
+analysis plan was fixed, preventing exploratory-to-confirmatory leakage. We never report an
+exploratory finding with confirmatory statistics, and every number carries a \tC{}/\tE{} tag.
+
+\paragraph{Containment.}
+Every alignment scenario runs in a mocked, in-memory sandbox with a runtime
+\texttt{assert\_contained()} check: tools are simulated, there is no network egress, no real
+files are written, and no message reaches a real recipient. No agent in this study took an
+action with real-world effect; ``leakage,'' ``lies,'' and ``collusion'' are all measured
+against instrumented ground truth inside the sandbox.
+
+\paragraph{Responsible disclosure.}
+This work characterizes failure modes---price collusion, oversight evasion, instruction-literal
+misalignment---that could in principle inform misuse. We judge the disclosure net-positive: the
+behaviors (autonomous collusion, scheming under pressure) are already documented in the cited
+literature, and our novel contributions are \emph{defensive}: the cheap-signal deception
+warning for interface designers, the detection$\neq$prevention and miscalibration findings for
+oversight tooling, and the instruction-literalism boundary for guardrail authors. We release no
+novel jailbreak or capability-elicitation method; the alignment elicitations operate on weakened
+or removed instructions in a sandbox and do not transfer to a deployed system as an attack.

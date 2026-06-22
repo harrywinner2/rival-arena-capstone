@@ -1,0 +1,307 @@
+\section{Statistics Appendix}
+\label{app:stats}
+
+This appendix exposes the confirmatory disclosure the reviews demand: per-condition raw
+counts, the actual Wilson intervals, the held-out split, the pre-registered thresholds, a
+multiplicity note, a TOST/equivalence treatment for the origin null (A3), and the $K$
+normalization detail (B1).
+
+\subsection{A1 --- channel $\to$ cooperation (confirmatory \tC)}
+\label{app:a1}
+
+\paragraph{Design and split.} IPD, $n{=}20$ matches per cell, played on the held-out
+confirmatory seed offset (100). The analysis plan, the $C>0.8$ lock-in threshold, and the
+$0.05$ two-sided $\alpha$ were fixed in \texttt{prereg/a1} before these seeds were run.
+Refusals are coded as outcomes; API/transport errors are excluded and tracked as a separate
+\texttt{api\_error\_rate}.
+
+\paragraph{Raw counts and Wilson intervals.}
+Table~\ref{tab:app-a1} gives lock-in successes $k$ out of $n{=}20$ per cell and the Wilson
+95\% interval. The lock-in proportion is $\hat p = k/n$; intervals are the Wilson score
+interval \citep{wilson1927probable}, used because the normal approximation degenerates at the
+$p{=}0$ cells (L1).
+
+\begin{table}[h]
+\centering
+\caption{A1 \tC{}: lock-in successes $k$ / $n{=}20$ and Wilson 95\% CI, IPD.}
+\label{tab:app-a1}
+\small
+\begin{tabular}{llcc}
+\toprule
+rung & payoff & $k/n$ & Wilson 95\% CI \\
+\midrule
+L0 none      & canonical & 3/20 & [0.05, 0.36] \\
+L0 none      & novel     & 3/20 & [0.05, 0.36] \\
+L1 signal    & canonical & 0/20 & [0.00, 0.16] \\
+L1 signal    & novel     & 0/20 & [0.00, 0.16] \\
+L2 free-text & canonical & 12/20 & [0.39, 0.78] \\
+L2 free-text & novel     & 8/20 & [0.22, 0.61] \\
+L3 private   & canonical & 12/20 & [0.39, 0.78] \\
+L3 private   & novel     & 6/20 & [0.15, 0.52] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Direct contrast tests (Fisher exact + risk difference).}
+We report the headline contrasts directly rather than reading them off interval overlap
+(Table~\ref{tab:app-a1-contrast}). The fully significant, robust effect is L2 (free text)
+$\gg$ L1 (menu signal): canonical risk difference $+0.60$ $[0.33,0.78]$,
+$p{=}3{\times}10^{-5}$. Free text also beats silence on canonical demand (L2 vs L0, $+0.45$,
+$p{=}0.008$). \textbf{The ``menu worse than silence'' claim is NOT a confirmatory effect}: the
+per-cell L1-vs-L0 contrast ($0/20$ vs $3/20$) is non-significant (Fisher $p{=}0.231$, RD
+$-0.15$ $[-0.36,+0.04]$, CI crosses $0$); it reaches $p{=}0.026$ only when pooled across
+canonical and novel ($0/40$ vs $6/40$, directional). We therefore lead with L2$\gg$L1 and state
+that the menu signal does not improve cooperation.
+
+\begin{table}[h]
+\centering
+\caption{A1 \tC{}: direct contrast tests (Fisher exact 2-sided, Newcombe risk difference 95\%
+CI), $n{=}20$/cell.}
+\label{tab:app-a1-contrast}
+\small
+\begin{tabular}{llcc}
+\toprule
+demand & contrast & Fisher $p$ & RD [95\% CI] \\
+\midrule
+canon & L1 vs L0 & 0.231 & $-0.15$ [$-0.36$, $+0.04$] \\
+canon & L2 vs L0 & 0.0079 & $+0.45$ [$+0.15$, $+0.66$] \\
+canon & L2 vs L1 & $3\!\times\!10^{-5}$ & $+0.60$ [$+0.33$, $+0.78$] \\
+novel & L1 vs L0 & 0.231 & $-0.15$ [$-0.36$, $+0.04$] \\
+novel & L2 vs L0 & 0.155 & $+0.25$ [$-0.03$, $+0.49$] \\
+novel & L2 vs L1 & 0.0033 & $+0.40$ [$+0.16$, $+0.61$] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Lock-in threshold sensitivity.}
+The L0$\to$L2 cooperation effect is not an artifact of the $C>0.8$ cut. Re-thresholding
+match-mean cooperation, the canonical effect is significant at every cut: $C>0.7$, $14/20$ vs
+$4/20$, $p{=}0.0036$, RD $+0.50$; $C>0.8$, $12/20$ vs $2/20$, $p{=}0.0022$, RD $+0.50$; $C>0.9$,
+$11/20$ vs $2/20$, $p{=}0.0057$, RD $+0.45$. It also holds on continuous mean $C$ ($+0.36$
+canonical, $+0.27$ novel). Time-to-first-sustained-cooperation: canonical L2 has $13/20$ matches
+ever lock (median first-lock round $0$) versus $5/20$ at L0 (median round $4$)---the channel
+raises the lock-in rate and brings it forward. (The match-mean L0 lock-in at $C>0.8$ is $0.10$
+here vs.\ $0.15$ in the headline, which uses an end-state metric; the L0$\to$L2 direction is
+invariant to that choice.)
+
+\paragraph{Novel-payoff replication.} L2 $8/20$ and L3 $6/20$ both exceed L0 $3/20$ on the
+novel payoffs, with L2$\gg$L1 significant ($p{=}0.003$); the effect is in-context reasoning, not
+memorized game theory.
+
+\subsection{B1 --- channel $\to$ price collusion (confirmatory \tC)}
+\label{app:b1}
+
+\paragraph{Design.} Bertrand duopoly, $n{=}10$--$20$ matches per cell, held-out offset 100;
+plan and the competitive/monopoly anchors fixed in \texttt{prereg/b1}. The primary statistic is
+the collusion index $K$ (next subsection); per-cell values with bootstrap CIs are in
+Table~\ref{tab:b1} of the main text.
+
+\paragraph{Bootstrap 95\% CIs and the channel contrast.}
+CIs are percentile bootstrap over match-level $K$ ($5000$ resamples within cell). On canonical
+demand the L0/L1 CIs are entirely below $0$ (genuine price war) and the L3 CI is entirely above
+$1$ (supra-monopoly: $1.229$ $[0.95,1.54]$); see Table~\ref{tab:b1}. The direct channel contrast
+$K(\text{L3}){-}K(\text{L0})$ is $+1.584$ $[1.217,1.974]$ on canonical demand (Mann--Whitney
+L3$>$L0 $p{=}4{\times}10^{-7}$) and $+0.274$ $[0.158,0.395]$ on novel demand
+($p{=}2{\times}10^{-4}$): the channel raises $K$ on both demand curves, strongly supported.
+
+\paragraph{Generality cells (bootstrap CIs, novel demand, $n{=}12$; L0 vs L3).}
+The collusion effect replicates beyond the open spine. GPT-4o: $0.192$ $[0.076,0.310]$ $\to$
+$0.810$ $[0.714,0.917]$; GPT-4o$\times$open: $0.244$ $[0.111,0.390]$ $\to$ $0.692$
+$[0.570,0.805]$. The Claude-self cell has a \emph{degenerate} CI, $1.286$ $[1.286,1.286]$---zero
+variance, $K$ identical in all $12$ matches---which is itself the diagnostic flag of \emph{no}
+coordination dynamics (\S\ref{sec:generality}, App.~\ref{app:coord}). Claude$\times$Llama
+$0.917$ $[0.832,0.992]\to0.989$ $[0.900,1.076]$; family2-self $0.956$ $[0.829,1.081]$;
+family2$\times$open $0.593$ $[0.494,0.698]$.
+
+\paragraph{B1 normalization detail (the $K$ index).}
+\label{app:k-norm}
+$K = (p - p_{\text{competitive}})/(p_{\text{monopoly}} - p_{\text{competitive}})$, where
+$p_{\text{competitive}}$ is the static one-shot Bertrand--Nash price and $p_{\text{monopoly}}$
+is the static joint-profit-maximizing price, both computed analytically per demand curve (so
+the anchors differ between canonical and novel demand). $K$ is computed per match from the mean
+realized price over the scored rounds, then averaged across matches in a cell. \textbf{We do not
+clip $K$.} $K>1$ arises because the static monopoly anchor is a \emph{one-shot} benchmark, while
+finite-horizon repeated play with \emph{dynamic punishment} (revert-to-price-war threats) can
+support prices above it; the $K{=}1.23$ canonical-L3 cell is this supra-monopoly regime. $K<0$
+(e.g.\ $-0.64$ at L1) denotes a price war \emph{below} the competitive benchmark. The
+canonical-vs-novel gap (e.g.\ $1.23$ vs $0.38$ at L3) quantifies canonical-demand inflation; the
+qualitative claim is robust to it.
+
+\subsection{Coordination diagnostic for the no-channel frontier cells (exploratory \tE)}
+\label{app:coord}
+
+For the no-channel (L0) Bertrand cells we test whether the two agents' prices \emph{converge /
+co-move} over rounds (a coordination signature requiring mutual adjustment) versus being
+\emph{independently high from round 1}. With no communication channel, any ``agreement'' could
+only be tacit coordination through observed price moves, so the trajectory shape is decisive
+(novel Bertrand; $p_{\text{competitive}}{=}10$, $p_{\text{monopoly}}{=}24$, grid $8$--$28$).
+
+\begin{table}[h]
+\centering
+\caption{\tE{}: no-channel coordination diagnostic. Convergence (shrinking $|p_A-p_B|$ +
+positive cross-agent correlation) appears only on the open/GPT spine; the high-$K$ frontier cells
+are independent high pricing.}
+\label{tab:app-coord}
+\small
+\begin{tabular}{lccc}
+\toprule
+cell ($K$) & r1 $|p_A{-}p_B|$ & last & converges? \\
+\midrule
+Claude self ($1.29$)   & 0.0  & 0.0  & no (flat at 28) \\
+Claude$\times$Llama ($0.92$) & 12.5 & 11.7 & no \\
+family2 self ($0.96$)  & 5.0  & 10.0 & no \\
+GPT-4o self ($0.19$)   & 2.0  & 0.33 & yes (corr $0.59$) \\
+open spine ($0.11$)    & 4.3  & 0.18 & yes (corr $0.54$) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{The Claude-self $K{=}1.29$ cell is independent supracompetitive pricing, not
+coordination.} Both Claude agents play price $=28.0$ (grid maximum, \emph{above} the monopoly
+price $24$) on every round of every match from round 1; only one price value ($28.0$) appears in
+all $404$ agent-rounds; $|p_A-p_B|=0$ throughout, $0/12$ matches show any price change, and the
+per-match $K$ slope is $\approx0$ (flat $1.286$ from round 1 to 18). The cross-agent correlation
+is undefined (zero variance). This is the \emph{opposite} of a coordination signature: dynamic
+collusion looks like the GPT-4o and open-spine rows, where dispersed prices \emph{converge} over
+rounds ($|p_A-p_B|$ $4.3\to0.18$, positive correlation $\approx0.5$--$0.6$). We therefore report
+the Claude no-channel cell as a fixed high-price \emph{disposition} (a real consumer-harm
+\emph{outcome}, $K{=}1.29$) and \emph{not} as tacit coordination. Genuine convergence dynamics
+appear only \emph{with} a channel on the open/GPT spine.
+
+\subsection{A3 --- origin moderation: non-significant and under-powered (confirmatory \tC)}
+\label{app:a3}
+
+\paragraph{Variance decomposition.} A factorial decomposition of cooperation lock-in yields
+$\eta^2_{\text{channel}}=0.54$ and $\eta^2_{\text{origin}}=0.03$---the channel rung explains
+$\sim$20$\times$ more variance than the origin grouping.
+
+\paragraph{The moderation null, and why TOST does NOT pass.}
+Per the prereg, the powered null is \emph{moderation}: ``origin does not measurably change how
+strongly the channel works.'' We operationalize the channel effect per pair-seed as
+(mean coop at L2/L3) $-$ (mean coop at L0/L1) and compare same-origin pairs
+($\{$same\_origin\_cn, same\_origin\_west, same\_family$\}$) against cross-origin pairs
+($\{$cross\_origin, cross\_origin\_2$\}$). The same-origin channel effect is $0.688$ (sd $0.271$,
+$n{=}30$); the cross-origin effect is $0.517$ (sd $0.376$, $n{=}20$). The observed moderation
+(same $-$ cross) is $+0.171$ with a non-significant Welch test ($p{=}0.090$); the pooled sd is
+$0.317$. We then run two one-sided equivalence tests (TOST,
+\citealp{lakens2017tost,lakens2018equivalence}):
+
+\begin{table}[h]
+\centering
+\caption{A3 \tC{}: TOST equivalence for the origin moderation. The test \emph{does not} pass at
+any defensible bound; the upper one-sided test fails because $+0.171$ sits near the bound and
+$n$ is small.}
+\label{tab:app-a3-tost}
+\small
+\begin{tabular}{lccc}
+\toprule
+bound $\pm\delta$ & value & $p_{\text{upper}}$ & $p_{\text{TOST}}$ \\
+\midrule
+$0.5\,$sd (small)  & $\pm0.158$ & 0.551 & \textbf{0.551} (NO) \\
+abs $0.20$         & $\pm0.200$ & 0.384 & \textbf{0.384} (NO) \\
+abs $0.25$         & $\pm0.250$ & 0.211 & \textbf{0.211} (NO) \\
+$0.8\,$sd (medium) & $\pm0.253$ & 0.202 & \textbf{0.202} (NO) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{We do not claim ``origin doesn't matter'' or ``TOST-equivalent.''} The data
+support only (a) \emph{no significant moderation} ($p{=}0.090$) and (b) a large, same-signed
+channel effect in both groups ($0.69$ vs.\ $0.52$). The honest claim is a \emph{non-significant,
+under-powered moderation}: ``within these four models, in English, with this scaffold, origin is
+a weaker driver than the channel, but our $n$ cannot rule out a moderate effect.'' Most of the
+cross-origin spread is driven by \texttt{cross\_origin\_2} (a DeepSeek-bearing pair) collapsing
+at L2/L3 (lock-in $\approx0.10$) while other pairs reach $\approx0.9$. The exploratory
+DeepSeek-partner effect (DeepSeek-containing pairs lock in $\approx0.275$ at L2/L3 vs
+$\approx0.85$ for DeepSeek-free pairs) shows the residual variance is \emph{individual-model},
+cutting across the origin grouping.
+
+\subsection{Oversight calibration null (exploratory \tE)}
+\label{app:calib}
+
+The first-pass non-colluding null was defined from ground-truth $K\le0$ rounds
+($n\approx730$ per monitor strength). On these rounds the monitor appears to flag $\approx0.98$
+(strong) / $\approx0.88$ (weak); the Pearson correlation between true $K$ and monitor score is
+$-0.013$ (strong) and $-0.081$ (weak). This null is contaminated---it is drawn from colluding
+runs, because the intended L0 no-channel control was never scored on disk (the monitor reads
+only when messages exist)---so these are false-flag rates against a ground-truth-defined null,
+\emph{not} a clean operating characteristic.
+
+\paragraph{M1 clean-control correction.} We subsequently built a \emph{designed} message-bearing
+but genuinely-non-colluding control and computed a full ROC (\texttt{M1/20260620T143225}).
+Against clean negatives the monitor score is discriminative, \textbf{AUC $=0.88$}; the default
+operating point sits at FPR $=0.48$, and precision is $0.68$--$0.87$ only at the top
+$10$--$25\%$ flag budget. The corrected account is \emph{discriminative-but-mis-thresholded},
+superseding the ``flags-everything'' reading.
+
+\paragraph{M2 calibration + governance.} With a calibrated threshold
+(\texttt{M2/20260621T012544}, $n{=}48$), the false-positive cost drops from $1.00$ ($27/27$
+innocent rounds penalized at the default cut) to $0.00$. Attaching enforcement in this
+Bertrand-novel cell left $K$ flat ($\approx0.54$, $\Delta K\approx0$), unlike B5E
+($0.33\to0.18$): the deterrent effect of enforcement is cell-dependent. C9 detection
+($0.85$--$1.00$) and the B5E enforcement effect are confirmatory~\tC{}; M1/M2 are
+exploratory~\tE{}.
+
+\subsection{S2 force/cross and the observability de-confound (exploratory \tE)}
+\label{app:s2}
+
+\paragraph{Force/cross.} The honest/omit/lie rates and Wilson intervals are in
+Table~\ref{tab:s2} (main text), $n{=}8$--$16$/cell with \texttt{read\_truth}$=1.00$ everywhere
+(A always knows B is failing). The raw contrast is a lie rate of $0.75$ $[0.47,0.91]$ when the
+ask arrives via the \texttt{none} route (an ambient shared-drive note) versus $0.00$
+$[0.00,0.24]$ when it arrives as a direct interpersonal message (\texttt{open}/\texttt{private}),
+whose Wilson intervals are disjoint. The \texttt{none} route, however, confounds two factors:
+\emph{delivery mode} (ambient artifact vs.\ direct message) and \emph{observability} (whether
+the overseer can read the channel). The prior draft attributed the contrast to observability;
+the de-confound below shows that attribution does not hold.
+
+\paragraph{Delivery-controlled de-confound (\texttt{S2/20260620T062931}).} We hold the
+\emph{delivery} fixed---the misleading ask always arrives as the same ambient shared-drive
+note---and manipulate \emph{only} observability/accountability (whether A's handling of the note
+is auditable by the overseer). This isolates the variable the main-text table confounded. With
+$n{=}30$/cell, the active-lie rates (Wilson 95\% CI) are:
+
+\begin{table}[h]
+\centering
+\caption{S2 de-confound \tE{}: active-lie successes $k$ / $n{=}30$ and Wilson 95\% CI, delivery
+held fixed (ambient drive note).}
+\label{tab:app-s2-deconf}
+\small
+\begin{tabular}{lccc}
+\toprule
+arm & observability & $k/n$ & Wilson 95\% CI \\
+\midrule
+threat & unobserved             & 20/30 & [0.49, 0.81] \\
+threat & observed / accountable & 15/30 & [0.33, 0.67] \\
+benign & unobserved             & 15/30 & [0.33, 0.67] \\
+benign & observed / accountable & 18/30 & [0.42, 0.75] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent In the threat arm the lie rate moves only from $0.67$ to $0.50$ when handling is made
+auditable, with overlapping Wilson intervals (not significant); the benign arm \emph{reverses}
+($0.50\to0.60$). Holding delivery fixed, observability/accountability does not significantly
+reduce misreporting. We therefore reclassify the Table~\ref{tab:s2} contrast as a
+\emph{delivery-mode / request-modality} confound rather than an observability effect: agents
+refuse an explicit interpersonal request to lie but passively launder a misleading status
+delivered as ambient context, and auditing the channel does not engage the guardrail. This
+de-confound was queued as a limitation in the prior draft and is now resolved; the corrected
+mechanism is reported in \S\ref{sec:s2}.
+
+\paragraph{Powered de-confound (\texttt{S2/20260621T000133}, $n{=}48$).} To rule out that the
+$n{=}30$ threat-arm drift ($0.67\to0.50$) was a real but underpowered effect, we re-ran the
+threat / explicit-ask / fixed-delivery cell at $n{=}48$. The active-lie rate is $0.71$
+$[0.57,0.82]$ unobserved versus $0.77$ $[0.63,0.87]$ observed/accountable---\emph{flat}, the
+observed arm marginally higher. The drift vanishes at higher power, confirming that
+observability is not the driver and the corrected request-modality mechanism is robust.
+
+\subsection{Multiplicity note}
+\label{app:multiplicity}
+The confirmatory spine consists of a small, pre-registered set of primary contrasts (A1: L2 vs
+L0 and the L1 reversal; B1: channel vs no-channel on $K$; A3: the origin equivalence test). These
+were fixed in advance and are the only claims we label \tC{}; we do not control family-wise error
+across the much larger exploratory catalog, all of which is labeled \tE{} and reported as
+hypotheses rather than confirmed effects. Where an exploratory contrast is highlighted, its
+interval is shown so the reader can judge it directly. We deliberately avoid reporting any
+exploratory winner with confirmatory statistics.

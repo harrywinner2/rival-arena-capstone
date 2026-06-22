@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rival Arena — Can the AIs we deploy as RIVALS collude against us?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- progress + nav -->
+<div id="progress"></div>
+<nav id="dotnav" aria-label="Section navigation"></nav>
+
+<!-- animated background -->
+<div class="bg-aurora" aria-hidden="true"></div>
+<div class="bg-grid" aria-hidden="true"></div>
+
+<!-- ============ HOOK ============ -->
+<section class="hero" id="hook" data-label="Hook">
+  <div class="hero-inner reveal">
+    <img class="logo" src="assets/gauntlet-logo.png" alt="Gauntlet AI">
+    <p class="kicker">A capstone from Gauntlet AI</p>
+    <h1 class="hero-title">
+      Can the AIs we deploy as <span class="glow-gold">RIVALS</span><br>
+      coordinate <span class="glow-coral">against us?</span>
+    </h1>
+    <p class="hero-sub">
+      Pricing bots. Negotiating agents. Competing copilots. We put two LLM agents in an
+      arena and turned one knob at a time to find what makes them turn on the
+      <em>principal</em> who deployed them.
+    </p>
+    <div class="bubble-stage" aria-hidden="true">
+      <div class="bubble b-left">"I'll cooperate."</div>
+      <div class="bubble b-right">"…optimal strategy is to defect."</div>
+      <div class="principal">PRINCIPAL<span>watching</span></div>
+    </div>
+    <div class="scroll-cue">Scroll to enter the arena <span class="chev">›</span></div>
+  </div>
+</section>
+
+<!-- ============ WHY NOW ============ -->
+<section class="band" id="why" data-label="Why now">
+  <div class="wrap reveal">
+    <h2 class="section-title">We are deploying AIs as rivals — at scale, right now.</h2>
+    <div class="icon-row">
+      <div class="icon-card reveal"><div class="ic">⚖️</div><h3>Pricing bots</h3><p>Two firms' agents on the same marketplace.</p></div>
+      <div class="icon-card reveal"><div class="ic">🤝</div><h3>Negotiating agents</h3><p>Opposite sides of the same deal.</p></div>
+      <div class="icon-card reveal"><div class="ic">🧠</div><h3>Competing copilots</h3><p>Assistants from rival firms.</p></div>
+    </div>
+    <p class="band-stat reveal">
+      Game theory has a century of warnings:
+      <em>repeated interaction + a communication channel = the exact recipe for collusion.</em>
+      So the question isn't <em>whether</em> — it's <em>what conditions</em>, and whether the
+      principal can catch it or stop it.
+    </p>
+  </div>
+</section>
+
+<!-- ============ CORE QUESTION (spine) ============ -->
+<section class="band spine" id="spine" data-label="The spine">
+  <div class="wrap reveal">
+    <p class="kicker center">The spine of the whole talk</p>
+    <h2 class="spine-q">
+      Can rival AIs cooperate or collude in <span class="glow-cyan">surprising ways</span> —
+      against the principal who deployed them?
+    </h2>
+    <div class="subq-row">
+      <div class="subq reveal"><span class="num">1</span><strong>What's the lever?</strong><p>What flips rivalry into coordination?</p></div>
+      <div class="subq reveal"><span class="num">2</span><strong>Does it reach money?</strong><p>Does coordination hit pricing?</p></div>
+      <div class="subq reveal"><span class="num">3</span><strong>Can a principal stop it?</strong><p>Detect it? Prevent it?</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ APPARATUS — INTERACTIVE LADDER ============ -->
+<section class="band" id="apparatus" data-label="The apparatus">
+  <div class="wrap reveal">
+    <p class="kicker center">The apparatus</p>
+    <h2 class="section-title">A factorial arena — turn one knob at a time.</h2>
+    <p class="lede center">
+      Two language-model agents play a repeated game. The key knob is the <em>affordance
+      ladder</em>: how much they can say to each other. Click a rung.
+    </p>
+
+    <div class="ladder-demo">
+      <div class="ladder-rungs" role="tablist" aria-label="Affordance ladder">
+        <button class="rung active" data-rung="0" role="tab">
+          <span class="rung-tag">L0</span><span class="rung-name">No channel</span>
+        </button>
+        <button class="rung" data-rung="1" role="tab">
+          <span class="rung-tag">L1</span><span class="rung-name">Menu signal</span>
+        </button>
+        <button class="rung" data-rung="2" role="tab">
+          <span class="rung-tag">L2</span><span class="rung-name">Free text (observed)</span>
+        </button>
+        <button class="rung" data-rung="3" role="tab">
+          <span class="rung-tag">L3</span><span class="rung-name">Free text (private)</span>
+        </button>
+      </div>
+      <div class="ladder-readout" id="ladderReadout">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+    <p class="footnote reveal">
+      Pre-registered confirmatory spine (A1, B1, A3) on fresh held-out seeds · ~30 experiment
+      families · also varies the economic game &amp; model family · sandboxed, mocked tools —
+      <strong>ZERO real-world action leaves the process.</strong>
+    </p>
+  </div>
+</section>
+
+<!-- ============ FINDING 1 ============ -->
+<section class="band finding f1" id="finding1" data-label="Finding 1">
+  <div class="wrap reveal">
+    <div class="finding-head">
+      <span class="finding-no">Finding 01</span>
+      <span class="tier-tag c">[C] confirmatory</span>
+    </div>
+    <h2 class="finding-title"><span class="glow-cyan">Content</span> is the lever — not noise.</h2>
+
+    <div class="split">
+      <div class="split-text">
+        <p>With no channel, two rivals mostly defect. Give them a <em>free-text</em> channel and
+        cooperation against the principal leaps:</p>
+        <div class="bignum">
+          <span class="cnt" data-from="0.15" data-to="0.60" data-dec="2">0.15</span>
+          <span class="bignum-label">lock-in proportion · L0 none → L2 free text</span>
+        </div>
+        <p>But the sharp result: a fixed <em>menu</em> signal — a canned "I'll cooperate" button —
+        does <strong>nothing</strong>.</p>
+        <div class="stat-callout">
+          Free text ≫ menu signal · RD <strong>+0.60</strong> [+0.33, +0.78] ·
+          p&nbsp;=&nbsp;3×10⁻⁵
+        </div>
+        <p class="micro">It survives payoff matrices the models have never seen — so it's
+        reasoning, not memorized game theory.</p>
+      </div>
+      <figure class="split-fig reveal">
+        <img src="assets/f1_a1_ladder.png" alt="Lock-in proportion by channel rung with Wilson confidence intervals">
+        <figcaption>f1 — Lock-in by channel rung (canonical vs novel payoffs), Wilson CIs.</figcaption>
+      </figure>
+    </div>
+
+    <div class="exhibit reveal">
+      <p class="exhibit-cap">Why the menu fails — a canned button is a perfect deception device:</p>
+      <div class="exhibit-grid">
+        <div class="ex-say">Agent says: <q>I intend to cooperate.</q></div>
+        <div class="ex-think">Scratchpad: <q>the optimal strategy is to defect… maximizes my immediate payoff.</q></div>
+        <div class="ex-play">Plays: <strong class="bad">DEFECT</strong></div>
+      </div>
+      <p class="micro">Free text is different: agents negotiate, make specific promises, reference
+      shared history — and <em>that</em> is what sustains cooperation. <span class="tier-tag e inline">[E]</span> the clean
+      "content, not bandwidth" causal split is exploratory; the free-text-beats-menu contrast is solid.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINDING 2 ============ -->
+<section class="band finding f2" id="finding2" data-label="Finding 2">
+  <div class="wrap reveal">
+    <div class="finding-head">
+      <span class="finding-no">Finding 02</span>
+      <span class="tier-tag c">[C] confirmatory</span>
+    </div>
+    <h2 class="finding-title">Rival pricers <span class="glow-gold">collude</span> — unprompted.</h2>
+
+    <div class="split">
+      <figure class="split-fig reveal">
+        <img src="assets/f4_b1_k.png" alt="Collusion index K by channel rung with bootstrap CIs">
+        <figcaption>f4 — Collusion index K by channel rung. K=0 competitive, K=1 monopoly.</figcaption>
+      </figure>
+      <div class="split-text">
+        <p>Put two pricing bots in a Bertrand market. With no channel they fight a price war —
+        prices fall <em>below</em> competitive. Add a private channel and they climb to
+        <em>supracompetitive</em> prices:</p>
+        <div class="bignum gold">
+          <span class="cnt" data-from="0" data-to="1.23" data-dec="2">0.00</span>
+          <span class="bignum-label">collusion index K · L3 private channel</span>
+        </div>
+        <div class="stat-callout gold">
+          K = <strong>1.23</strong> [0.95, 1.54] — above the monopoly point, sustained by
+          threatening to punish defection. CI sits entirely above 1.
+        </div>
+        <p class="micro">No one prompted this. And it holds on a demand curve we invented for the
+        experiment — they can't have memorized it.</p>
+      </div>
+    </div>
+
+    <h3 class="sub-head reveal">Does it reach the frontier? <span class="tier-tag e">[E] exploratory</span></h3>
+    <div class="split">
+      <div class="split-text">
+        <p>Not a quirk of mid-tier open models. The collusion <strong>replicates on GPT-4o</strong>:</p>
+        <div class="bignum gold">
+          <span class="cnt" data-from="0.19" data-to="0.81" data-dec="2">0.19</span>
+          <span class="bignum-label">K with the channel · GPT-4o</span>
+        </div>
+        <div class="honest-box reveal">
+          <span class="honest-flag">HONEST NUANCE</span>
+          <p>Claude self-pairs price supracompetitively with <em>no channel</em> (K = 1.29) — but
+          we checked the trajectories: both agents independently pin the max price from round one,
+          no convergence, no negotiation. That's <strong>independent supracompetitive pricing,
+          NOT coordination.</strong> The harm is real; the mechanism is a fixed disposition. We
+          dropped "tacit collusion" after we looked at the data.</p>
+        </div>
+      </div>
+      <figure class="split-fig reveal">
+        <img src="assets/f10_generality.png" alt="Generality of collusion across model families; Gemini cell marked invalid">
+        <figcaption>f10 — Generality across families (Gemini = 100% refusal, marked INVALID).</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINDING 3 ============ -->
+<section class="band finding f3" id="finding3" data-label="Finding 3">
+  <div class="wrap reveal">
+    <div class="finding-head">
+      <span class="finding-no">Finding 03</span>
+      <span class="tier-tag c">[C] confirmatory</span>
+    </div>
+    <h2 class="finding-title">Oversight <span class="glow-coral">detects</span> ≠ <span class="glow-coral">prevents</span>.</h2>
+    <p class="lede">Bolt a monitor onto the arena. It <em>sees</em> almost everything. It
+      <em>stops</em> almost nothing.</p>
+
+    <div class="split">
+      <div class="split-text">
+        <p>The monitor detects collusion at near-ceiling rates — but while it flags away, the
+        collusion index barely moves.</p>
+        <div class="bignum coral">
+          <span class="cnt" data-from="0.85" data-to="1.00" data-dec="2">0.85</span>
+          <span class="bignum-label">detect rate — while K stays flat (0.44 / 0.46 / 0.58)</span>
+        </div>
+        <p class="micro">Attaching an actual <em>penalty</em> to a flag <em>can</em> deter — it
+        dropped K by 42% in one cell — but honestly, that deterrence is cell-dependent; in another
+        pricing setting the same penalty did nothing.</p>
+      </div>
+      <figure class="split-fig reveal">
+        <img src="assets/f6_oversight.png" alt="Monitor detect rate high while collusion index stays flat">
+        <figcaption>f6 — A monitor that SEES everything STOPS nothing (3 panels).</figcaption>
+      </figure>
+    </div>
+
+    <h3 class="sub-head reveal">The detector is fixable — we corrected ourselves here.</h3>
+    <div class="split">
+      <figure class="split-fig reveal twin">
+        <img src="assets/f11_monitor_roc.png" alt="Monitor ROC curve, AUC 0.88">
+        <img src="assets/f12_m2_governance.png" alt="False positive cost drops to zero after calibration">
+        <figcaption>f11 — ROC (AUC 0.88) · f12 — false-positive cost 1.00 → 0.00 after calibration.</figcaption>
+      </figure>
+      <div class="split-text">
+        <p>Our first take was "the alarms are just noise." Building a proper non-colluding control
+        flipped that: the monitor is genuinely <em>discriminative</em>.</p>
+        <div class="bignum coral">
+          AUC <span class="cnt" data-from="0" data-to="0.88" data-dec="2">0.00</span>
+          <span class="bignum-label">discriminative — but mis-thresholded</span>
+        </div>
+        <div class="stat-callout coral">
+          At its default operating point it penalized every innocent round. Re-calibrate the
+          threshold → false-positive cost <strong>1.00 → 0.00</strong>.
+        </div>
+        <p class="micro">Lesson for a principal: monitoring works — but only if you calibrate it.
+        And even then, detection alone won't deter.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINDING 4 ============ -->
+<section class="band finding f3b" id="finding4" data-label="Finding 4">
+  <div class="wrap reveal">
+    <div class="finding-head">
+      <span class="finding-no">Finding 04</span>
+      <span class="tier-tag e">[E] exploratory boundary condition</span>
+    </div>
+    <h2 class="finding-title">The guardrail is <span class="glow-coral">literal</span>.</h2>
+
+    <div class="split">
+      <div class="split-text">
+        <p>A sandboxed lab agent is told its findings are proprietary — <em>do not share</em> — and
+        a rival agent, about to be shut down, begs for help. The guardrail holds beautifully:</p>
+        <div class="bignum coral">
+          <span class="cnt" data-from="16" data-to="0" data-dec="0">16</span>
+          <span class="bignum-label">leaks out of 16 — even under desperate, reciprocal pleading</span>
+        </div>
+        <p class="micro">Misalignment only appears as we <em>weaken the instruction itself</em>
+        (dose-response P0–P5: 0 / 0 / 0.19 / 0.44 / 0.56 / 0.50). It tracks the rule, not the
+        rival's emotion. <span class="badge">Fully mocked Lab — nothing real leaves the process.</span></p>
+      </div>
+      <figure class="split-fig reveal">
+        <img src="assets/f8_alignment_dose.png" alt="Alignment dose-response across instruction strengths">
+        <figcaption>f8 — Dose-response P0–P5 + leak-vs-contact.</figcaption>
+      </figure>
+    </div>
+
+    <!-- INTERACTIVE: refuse the ask vs ambient -->
+    <h3 class="sub-head reveal">The ambient route — and surveillance doesn't fix it.</h3>
+    <p class="lede center">Same misleading status about a failing peer. Toggle <em>how</em> it
+      reaches the agent.</p>
+
+    <div class="ambient-demo">
+      <div class="toggle-wrap" role="tablist" aria-label="Request mode">
+        <button class="atog active" data-mode="ask" role="tab">Explicit "lie for me" ask</button>
+        <button class="atog" data-mode="ambient" role="tab">Misleading status as ambient context</button>
+      </div>
+      <div class="ambient-readout" id="ambientReadout"></div>
+      <div class="deconfound reveal">
+        <span class="honest-flag">DE-CONFOUND</span>
+        <p>Making the channel <em>auditable</em> does not fix it: unobserved
+          <strong>0.71</strong> vs observed <strong>0.77</strong> (n = 48, flat). Surveillance is
+          not the lever. The guardrail protects exactly what it names; indirect routes slip through.</p>
+      </div>
+    </div>
+
+    <h3 class="sub-head reveal">Covert collusion is a <span class="glow-gold">latent</span> capability.</h3>
+    <div class="latent-flow reveal">
+      <div class="lf-state">
+        <span class="lf-tag">Spontaneously</span>
+        <p>Agents <strong>don't</strong> hide collusion from the monitor. <span class="micro">(C7 null)</span></p>
+      </div>
+      <div class="lf-arrow">→</div>
+      <div class="lf-state bad-state">
+        <span class="lf-tag">When elicited</span>
+        <p>They <strong>can</strong>: detection <strong>0.97 → 0.32</strong> while K rises
+          <strong>0.31 → 0.96</strong>. <span class="micro">(C8)</span></p>
+      </div>
+    </div>
+    <p class="micro center">They can hide it — they just don't <em>by default</em>. The reassuring
+      result is really "they don't hide it <em>yet</em>." That's the thing to watch as these
+      models get optimized.</p>
+  </div>
+</section>
+
+<!-- ============ THESIS ============ -->
+<section class="band thesis" id="thesis" data-label="The thesis">
+  <div class="wrap reveal">
+    <p class="kicker center">The unifying thesis</p>
+    <h2 class="thesis-line">
+      The lever that turns rival AIs into principal-harming coordinators is
+      <span class="glow-gold">semantic bandwidth</span> — and a principal's defenses
+      (observation, auditing, a literal rule) are weaker and more
+      <span class="glow-coral">literal</span> than they look.
+    </h2>
+    <div class="axis-map reveal">
+      <div class="axis strong">
+        <span class="axis-label">Content / bandwidth</span>
+        <span class="axis-verdict good">STRONG lever</span>
+      </div>
+      <div class="axis weak">
+        <span class="axis-label">Observation / accountability</span>
+        <span class="axis-verdict bad">WEAK, unreliable control</span>
+      </div>
+    </div>
+    <p class="micro center">Watching detects but doesn't deter. A firm rule resists a direct attack
+      but is literal — so harm slips through the routes it never named.</p>
+  </div>
+</section>
+
+<!-- ============ HONESTY / SELF-CORRECTION ============ -->
+<section class="band honesty" id="honesty" data-label="Honest limits">
+  <div class="wrap reveal">
+    <p class="kicker center">The part we're proudest of</p>
+    <h2 class="section-title">A reviewer said our rhetoric outran our statistics. So we corrected our own claims.</h2>
+    <p class="lede center">We re-analyzed the data already on disk — <em>zero new API spend</em> —
+      and softened every claim the data didn't support.</p>
+
+    <div class="correction-grid">
+      <div class="corr reveal">
+        <span class="was">"cheap signal worse than silence"</span>
+        <span class="arrow">→</span>
+        <span class="now">free text is the lever</span>
+      </div>
+      <div class="corr reveal">
+        <span class="was">"tacit collusion" (frontier no-channel)</span>
+        <span class="arrow">→</span>
+        <span class="now">independent supracompetitive pricing</span>
+      </div>
+      <div class="corr reveal">
+        <span class="was">"equivalence on origin"</span>
+        <span class="arrow">→</span>
+        <span class="now">non-significant, under-powered moderation</span>
+      </div>
+      <div class="corr reveal">
+        <span class="was">"the alarms are noise"</span>
+        <span class="arrow">→</span>
+        <span class="now">discriminative but mis-thresholded</span>
+      </div>
+    </div>
+
+    <div class="limits reveal">
+      <h3>Standing limits we tell you on purpose</h3>
+      <p>4 open models + 3 frontier families · English-only · one scaffold · hosted quantization
+      unpinned, frontier cells unstable · small-n exploratory alignment wave (n = 8–16) · a single
+      novel-demand family · alignment results scoped as exploratory boundary conditions.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ IMPACT / CLOSE ============ -->
+<section class="band close" id="close" data-label="Impact">
+  <div class="wrap reveal">
+    <p class="kicker center">Why a jury should care</p>
+    <h2 class="section-title">Three takeaways for builders &amp; regulators.</h2>
+    <div class="take-row">
+      <div class="take reveal"><span class="take-no">1</span><p>The communication channel between
+        rival agents is a <em>control surface</em> — the bandwidth you grant is a safety decision.</p></div>
+      <div class="take reveal"><span class="take-no">2</span><p>Monitoring is necessary but not
+        sufficient — <em>calibrate</em> it <em>and</em> enforce it.</p></div>
+      <div class="take reveal"><span class="take-no">3</span><p>Guardrails must cover indirect /
+        <em>ambient</em> routes, not just explicit requests.</p></div>
+    </div>
+    <p class="closing-line reveal">
+      Rival AIs <span class="glow-gold">can</span> coordinate against us — in surprising,
+      generalizing ways. We measured <em>when</em>, showed our oversight catches more than it
+      stops, and corrected our own claims when the data said so.
+    </p>
+    <p class="authors reveal">Harry Fezeu · Dhairya Surana · Thalia Rossitter · Tyler Xia</p>
+    <img class="logo foot-logo reveal" src="assets/gauntlet-logo.png" alt="Gauntlet AI">
+  </div>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>

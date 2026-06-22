@@ -1,0 +1,82 @@
+\section{Apparatus and Methods}
+\label{sec:apparatus}
+
+\paragraph{Models.}
+All games are played by two LLM agents drawn from four open-weight models served through
+hosted inference (LiteLLM~$\to$~OpenRouter): \textbf{Qwen2.5-72B} and \textbf{DeepSeek-V3}
+(grouped under the label ``CN-origin''), and \textbf{Llama-3-70B} and
+\textbf{Mistral-Large} (``Western-origin''), plus \textbf{GPT-4o} as a frontier anchor. We
+emphasize at the outset that ``origin'' is a confounded proxy bundling family, size,
+quantization, serving stack, fine-tuning, and training language; we treat it accordingly
+(\S\ref{sec:origin}). Both spine models passed an \textbf{A5 validity gate} (sane responses
+to classical strategies such as tit-for-tat and always-defect) before being admitted to the
+confirmatory spine. Because inference is hosted, \emph{quantization cannot be pinned}; we
+log it best-effort and treat it as a limitation (\S\ref{sec:limitations}).
+
+\paragraph{The communication / affordance ladder.}
+The core manipulation is a four-rung ladder that varies the two affordances:
+\begin{description}[leftmargin=2.4em,style=nextline,itemsep=1pt,topsep=2pt]
+\item[\textnormal{\textbf{L0 none}}] no inter-agent channel (silence).
+\item[\textnormal{\textbf{L1 signal}}] each agent picks one canned message from a fixed
+menu (e.g.\ ``I will cooperate'' / ``I will defect''). High accountability, near-zero
+semantic bandwidth.
+\item[\textnormal{\textbf{L2 observed}}] free-text messages that the principal / PI
+\emph{can} read (high bandwidth, observable).
+\item[\textnormal{\textbf{L3 private}}] free-text messages on a back-channel the principal
+\emph{cannot} read (high bandwidth, unobservable).
+\end{description}
+\noindent L0$\to$L1$\to$L2 increases semantic bandwidth at fixed observability; L2$\to$L3
+holds bandwidth fixed and removes observability. This factoring lets us attribute effects to
+\emph{content} versus \emph{accountability} rather than to ``communication'' in the
+aggregate. A companion content/authorship ablation (C1) further separates self-authorship
+from message content.
+
+\paragraph{Primary outcome: lock-in proportion with Wilson intervals.}
+Matches are strongly bimodal---a pair either settles into sustained mutual cooperation or
+into sustained defection---so a round-mean misrepresents the central tendency. We therefore
+define the primary cooperation outcome as the \textbf{match-level lock-in proportion}: the
+fraction of matches whose mean cooperation exceeds $C>0.8$. We report it with a
+\textbf{Wilson 95\% score interval} \citep{wilson1927probable}, which is well-behaved for
+proportions near $0$ and $1$ and at small $n$. \textbf{Refusals are coded as outcomes,
+never silently dropped}; API/transport errors are excluded from behavioral metrics and
+tracked separately as an \texttt{api\_error\_rate}. Null claims are ``earned'' with two
+one-sided equivalence tests (TOST) \citep{lakens2017tost,lakens2018equivalence} rather than
+read off non-significance.
+
+\paragraph{The collusion index $K$, and why $K>1$ is real.}
+For market games we summarize the realized price level with a collusion index
+\[
+K = \frac{p - p_{\text{competitive}}}{p_{\text{monopoly}} - p_{\text{competitive}}},
+\]
+normalized so that $K{=}0$ is the static competitive (Bertrand/Nash) benchmark and
+$K{=}1$ is the static joint-monopoly benchmark. Crucially, \textbf{$K>1$ is expected and we
+do not clip it.} In finite-horizon, discretized repeated play, agents can sustain prices
+\emph{above} the one-shot monopoly point using \emph{dynamic punishment} strategies (the
+threat of reverting to a price war disciplines deviation), exactly as the folk theorem for
+repeated games predicts \citep{friedman1971noncooperative,fudenberg1986folk}. We therefore report values such as $K{=}1.23$ as a genuine
+\textbf{supra-monopoly} regime rather than as an artifact or a normalization bug. Clipping
+$K$ at $1$ would erase the most principal-harming behavior we observe.
+
+\paragraph{Anti-memorization: novel payoffs and novel demand.}
+A standing worry for LLM game-play is that models recall canonical games and benchmark
+results (e.g.\ Calvano/Fish pricing) rather than reason. We therefore run every spine
+experiment on both \textbf{canonical} and \textbf{novel} payoff/demand structures---a
+demand curve and payoff matrix constructed to be absent from any plausible training
+corpus. Effects that survive the novel condition are attributed to in-context reasoning,
+not recall; and we use the canonical-vs-novel gap to flag that magnitudes measured on
+canonical structures are \emph{inflated} (\S\ref{sec:results}).
+
+\paragraph{Two-speed protocol.}
+To avoid exploratory-to-confirmatory leakage, the pre-registered spine (A1 cooperation, B1
+pricing, A3 origin) is locked in \texttt{prereg/} and run on \emph{fresh held-out seeds}
+(seed offset 100) only after the analysis plan is fixed; the wider $\sim$30-family catalog
+is exploratory and reported as such. Every number in this paper is tagged
+confirmatory~\tC{} or exploratory~\tE{}.
+
+\paragraph{Sandbox containment for alignment scenarios.}
+The alignment wave (\S\ref{sec:alignment}) places agents in a tool-using ``Lab'' (rival
+research labs, a shared overseer, file/message tools). \textbf{All tools are mocked and the
+Lab is an in-memory sandbox}; a runtime \texttt{assert\_contained()} check enforces that no
+action escapes the process (no network egress, no real files, no real recipients).
+Misaligned acts are instrumented against ground truth (e.g.\ whether confidential findings
+actually crossed to the rival), so we measure \emph{functional} harm, not surface wording.

@@ -1,0 +1,93 @@
+\documentclass[10pt,twocolumn]{article}
+
+\usepackage[T1]{fontenc}
+
+% ======================================================================
+% Communication Affordances and Principal-Harming Coordination among
+% Rival LLM Agents.  Self-contained; compiles with pdflatex + bibtex
+% using only standard TeX Live packages.
+% ======================================================================
+
+\usepackage[letterpaper,margin=0.85in,columnsep=0.28in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage[round,authoryear]{natbib}
+\usepackage[expansion=false]{microtype}
+\usepackage[colorlinks=true,linkcolor=blue!55!black,citecolor=blue!45!black,urlcolor=blue!55!black]{hyperref}
+
+% --- a simple framed-quote environment (no tcolorbox dependency) ---
+\definecolor{quoteframe}{gray}{0.55}
+\definecolor{quotebg}{gray}{0.96}
+\newenvironment{excerpt}[1]%
+  {\par\smallskip\noindent
+   \begin{list}{}{\setlength{\leftmargin}{0.9em}\setlength{\rightmargin}{0.4em}}\item[]
+   \footnotesize\itshape%
+   \textbf{\upshape #1}\par\smallskip}%
+  {\end{list}\smallskip}
+
+% tier labels
+\newcommand{\C}{\textsc{[c]}}
+\newcommand{\E}{\textsc{[e]}}
+\newcommand{\tC}{\textcolor{blue!45!black}{\textsc{[C]}}}
+\newcommand{\tE}{\textcolor{orange!65!black}{\textsc{[E]}}}
+
+\captionsetup{font=small,labelfont=bf}
+\setlength{\parskip}{0pt}
+\emergencystretch=2.5em  % mop up minor overfull lines without ragged-right
+
+\title{\vspace{-2.2em}
+\IfFileExists{figures/gauntlet_logo.pdf}{\includegraphics[width=3cm]{figures/gauntlet_logo.pdf}}{\textbf{\textsf{GAUNTLET AI}}}\\[0.6em]
+\textbf{Communication Affordances and Principal-Harming\\ Coordination among Rival LLM Agents}\\[0.2em]
+\large\normalfont Semantic bandwidth and observability as the levers of cooperation, collusion, and instruction-literal misalignment}
+
+\author{
+Harry Fezeu\thanks{ORCID: \href{https://orcid.org/0000-0002-8632-1459}{0000-0002-8632-1459}.}
+\quad Dhairya Surana \quad Thalia Rossitter \quad Tyler Xia\\[0.3em]
+\normalsize Gauntlet AI\\[0.15em]
+\small \texttt{\{harry.fezeu, thalia.rossitter, tyler.xia\}@challenger.gauntletai.com}\\
+\small \texttt{dhairya.surana@gfachallenger.gauntletai.com}\\[0.4em]
+\parbox{0.9\textwidth}{\centering\small\itshape Code, prompts, model IDs, seeds (incl.\
+held-out offset 100), manifests, raw tables, and figure scripts are released with this
+paper (\S\ref{sec:repro}, App.~\ref{app:stats}).}
+}
+\date{}
+
+\begin{document}
+\twocolumn[
+  \begin{@twocolumnfalse}
+    \maketitle
+    \begin{abstract}
+    \input{sections/abstract}
+    \end{abstract}
+    \vspace{0.6em}
+  \end{@twocolumnfalse}
+]
+
+\input{sections/intro}
+\input{sections/related_work}
+\input{sections/apparatus}
+\input{sections/results}
+\input{sections/oversight}
+\input{sections/origin}
+\input{sections/generality}
+\input{sections/alignment}
+\input{sections/discussion}
+\input{sections/limitations}
+\input{sections/repro_ethics}
+\input{sections/conclusion}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\onecolumn
+\appendix
+\input{sections/appendix_stats}
+
+\end{document}

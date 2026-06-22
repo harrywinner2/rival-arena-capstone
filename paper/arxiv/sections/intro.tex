@@ -1,0 +1,114 @@
+\section{Introduction}
+\label{sec:intro}
+
+Autonomous LLM agents are increasingly deployed to act on behalf of a principal---a
+firm, a user, an operator---in settings where they encounter \emph{other} agents pursuing
+\emph{other} principals' goals. A growing literature establishes that such agents will
+cooperate in social dilemmas \citep{akata2025repeated,madmoun2025communication} and will
+collude on price without being told to \citep{fish2024algorithmic,calvano2020ai}---echoing
+classical results that repeated interaction sustains cooperation
+\citep{axelrod1984evolution} and that even costless ``cheap-talk'' communication has
+strategic, sometimes adversarial, value \citep{schelling1960strategy,crawford1982strategic}.
+The
+open and safety-relevant question is no longer \emph{whether} this happens, but \emph{what
+makes it happen}: which features of the interface we build around these agents tip
+ordinary strategic interaction into coordination that harms the very principal the agent
+is supposed to serve.
+
+We argue that two communication \emph{affordances} are the decisive levers, and that they
+can be varied independently:
+\begin{itemize}[leftmargin=1.1em,itemsep=1pt,topsep=2pt]
+\item \textbf{Semantic bandwidth} --- how much \emph{content} an agent can convey:
+nothing, a fixed menu signal, constrained free text, or open free text.
+\item \textbf{Observation / accountability} --- whether the principal (or an overseer)
+can read and audit what the agents say and do.
+\end{itemize}
+\noindent Our central thesis is that of these two axes, \emph{semantic bandwidth---content---is
+the dominant lever}, while observation/accountability is a \emph{weaker and unreliable}
+control. Content converts strategic interaction into \emph{principal-harming coordination}
+across three distinct surfaces---cooperation in social dilemmas, supracompetitive price
+collusion, and instruction-literal misalignment. Observation, by contrast, repeatedly records
+harm without deterring it: passive monitoring detects collusion but does not stop it
+(enforcement can deter, though the effect is cell-dependent), and making an agent's reporting
+auditable does not stop it from passing along a misleading status delivered as \emph{ambient
+context}. A firm operator instruction is a strong but \emph{literal} guardrail---it resists a
+direct request to do wrong, but harm slips through the indirect/ambient routes it never
+named---a behavior anticipated by work on instruction-literal reward hacking
+\citep{hubinger2019risks} and goal misgeneralization
+\citep{langosco2022goal,shah2022goal}.
+
+\paragraph{This paper began as a different question.}
+We set out to ask ``when do rival AIs cooperate, and does national origin of the model
+matter?'' Mid-project we corrected the question to ``does communication pull agents to
+act against their operator?''; following external review we adopt the sharper
+affordance/accountability framing above. We are explicit about this history because it
+shapes what we treat as confirmatory versus exploratory (\S\ref{sec:apparatus}), and
+because it explains why a model-\emph{origin} hypothesis that motivated the original design
+is here \emph{demoted} to a bounded within-sample case study (\S\ref{sec:origin}).
+
+\paragraph{Contributions.}
+\begin{enumerate}[leftmargin=1.3em,itemsep=2pt,topsep=2pt]
+\item \textbf{An affordance ladder: free text $\gg$ menu signal}~(\tC). We isolate
+bandwidth from observability and from authorship. A fixed-menu intention signal \emph{does
+not} improve cooperation (it trends below the no-channel baseline, but the per-cell contrast
+is not significant); the robust, fully significant effect is that free text far exceeds the
+menu signal (L2 vs.\ L1 risk difference $+0.60$ $[0.33,0.78]$, $p{=}3{\times}10^{-5}$). We
+lead with that contrast. Consistent with this, the lever is open \emph{content}---menu and
+self-authored action-only messages both behave like silence---and the effect survives on
+novel payoffs and across lock-in thresholds (\S\ref{sec:results}).
+\item \textbf{Channel-driven price collusion that passive oversight does not
+deter}~(\tC). Across four market mechanisms a channel lifts collusion from price-war to
+supracompetitive, including a sustained \emph{supra-monopoly} ($K{>}1$) regime we report
+honestly rather than clip. A read-only monitor detects but does not deter; only enforcement
+does. Against a clean control the monitor's score is \emph{discriminative} (AUC $0.88$) but
+\emph{mis-thresholded}---correcting our own initial ``flag-everything'' reading---and
+calibrating the threshold drives false positives to zero (\S\ref{sec:oversight}).
+\item \textbf{Instruction literalism, and an ambient-context manipulation route}~(\tE). We
+map a dose-response curve for a confidential-information leak and identify the precise
+boundary of a firm operator instruction: it resists empathy, reciprocity, and direct
+pleading---and agents refuse a \emph{direct} request to lie---but the same agents passively
+launder a misleading status delivered as \emph{ambient context}. We report a
+delivery-controlled de-confound ($n{=}30$, powered to $48$) that overturns our own initial
+``observability gates honesty'' reading: making the channel auditable does not fix the ambient
+route, so the mechanism is a \emph{refusal-affordance / request-modality} effect. We scope this
+as an \emph{exploratory boundary condition}---prompt-specific, observed in a single sandboxed
+task family (\S\ref{sec:alignment}).
+\item \textbf{Frontier-model generality, and independent supracompetitive pricing}~(\tE).
+Re-running the spine on GPT-4o, Claude-3.7, and a Claude$\times$Llama cross-pair, the
+principal-harming \emph{collusion} effect generalizes ($0.19\to0.81$ on GPT-4o). A separate,
+striking result: some frontier models (Claude) price supracompetitively ($K{=}1.29$)
+\emph{with no communication channel at all}---but a coordination diagnostic shows this is
+\emph{independent} high pricing (both agents play the grid-max price from round 1, zero
+convergence), a fixed disposition rather than tacit coordination. Genuine
+convergence/coordination appears only on the open and GPT-4o spine \emph{with} a channel. The
+\emph{cooperation} effect, by contrast, is open-model-specific (GPT-4o cooperates
+unconditionally; Claude$\times$Llama never does). A powered elicitation (C8) further shows
+covert steganographic collusion is a \emph{latent capability}---absent spontaneously, present
+on demand (\S\ref{sec:generality}).
+\item \textbf{A reproducible apparatus and disclosure standard.} A pre-registered
+confirmatory spine, Wilson intervals on bimodal outcomes, direct contrast tests
+(Fisher exact, risk differences, bootstrap CIs on $K$), an honestly-reported under-powered
+equivalence (TOST) attempt for the origin null, refusal coding, novel-demand anti-memorization
+controls, and a full statistics appendix (\S\ref{sec:repro}, App.~\ref{app:stats}), with
+prompts, seeds, and raw tables released.
+\end{enumerate}
+
+\paragraph{The throughline, sharpened.}
+The spine of this work is one question: \emph{can rival AIs cooperate or collude in surprising,
+principal-harming ways?} A second wave of experiments sharpened the answer rather than blunting
+it. The most capable models we tested reach supracompetitive prices with no channel at all---an
+\emph{independent} high-pricing disposition rather than coordination (the harmful outcome is real
+either way); they can \emph{hide} channel-driven collusion on demand (a latent covert
+capability); and naive oversight \emph{detects but does not reliably stop} them---the monitor is
+discriminative yet mis-thresholded, and enforcement deters only in some cells. The honesty
+failure (passing along a misleading status delivered as an ambient artifact) and the latent
+covert capability are deployment-relevant edges of that one question. None of these are
+reassuring; all are scoped, tiered, and released as exploratory boundary conditions.
+
+\paragraph{Tiering.}
+We separate two evidential speeds and label every quantitative claim. \textbf{Confirmatory}
+results~(\tC) come from a pre-registered spine (experiments A1, B1, A3) run on fresh
+held-out seeds (offset 100), with thresholds and analyses fixed in advance.
+\textbf{Exploratory} results~(\tE) come from the wider catalog ($\sim$30 experiment
+families) and are reported as hypotheses, never with confirmatory stats. All claims are
+scoped to ``these four models, in English, with this scaffold.''

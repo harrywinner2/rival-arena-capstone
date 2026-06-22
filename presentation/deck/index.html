@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rival Arena — Gauntlet AI</title>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/black.css" id="theme">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/plugin/highlight/monokai.css">
+
+<style>
+  :root{
+    --ink:#f4f1ea;
+    --muted:#9a948a;
+    --bg0:#0a0a0a;          /* Gauntlet near-black */
+    --gold:#c09e5a;         /* brand gold */
+    --cyan:#00d4ff;         /* brand cyan */
+    --coral:#ff6b6b;        /* brand coral */
+    --good:#2fd08a;
+  }
+  .reveal{ font-family:"Inter","Helvetica Neue",Arial,sans-serif; color:var(--ink);
+           font-size:30px; }
+  .reveal .slides section{ text-align:left; }
+  .reveal .slides section.center{ text-align:center; }
+  html.reveal-viewport{ background:var(--bg0); }
+  .reveal .backdrop{ background:radial-gradient(1100px 760px at 72% -12%, #1c1810 0%, var(--bg0) 60%); }
+
+  .reveal h1,.reveal h2,.reveal h3{ color:var(--ink); font-weight:800;
+        letter-spacing:-0.015em; text-transform:none; line-height:1.08; }
+  .reveal h1{ font-size:1.9em; }
+  .reveal h2{ font-size:1.35em; }
+  .reveal h3{ font-size:1.0em; color:var(--muted); font-weight:600; letter-spacing:.02em; }
+  .reveal em{ color:var(--gold); font-style:normal; font-weight:700; }
+  .reveal strong{ color:var(--ink); }
+  .reveal a{ color:var(--cyan); text-decoration:none; }
+  .reveal ul{ margin-left:1em; }
+  .reveal li{ margin:.32em 0; }
+
+  .kicker{ color:var(--gold); font-weight:800; letter-spacing:.26em;
+           text-transform:uppercase; font-size:.5em; }
+  .muted{ color:var(--muted); }
+  .small{ font-size:.74em; }
+  .tiny{ font-size:.56em; color:var(--muted); line-height:1.35; }
+  .gold{ color:var(--gold); } .cyan{ color:var(--cyan); } .coral{ color:var(--coral); }
+  .good{ color:var(--good); }
+  .center .kicker{ display:block; margin-bottom:.6em; }
+
+  .reveal section img.fig{ background:#fff; border-radius:10px; padding:8px;
+        box-shadow:0 18px 50px rgba(0,0,0,.55); margin:0 auto; display:block; }
+
+  /* finding chips */
+  .chip{ display:inline-block; padding:.14em .7em; border-radius:.5em;
+         font-size:.5em; font-weight:800; letter-spacing:.05em; vertical-align:middle;
+         text-transform:uppercase; }
+  .chip.cy{ background:rgba(0,212,255,.14);  color:var(--cyan);  border:1px solid var(--cyan); }
+  .chip.gd{ background:rgba(192,158,90,.16); color:var(--gold);  border:1px solid var(--gold); }
+  .chip.co{ background:rgba(255,107,107,.14);color:var(--coral); border:1px solid var(--coral); }
+
+  /* callout box */
+  .callout{ border-left:4px solid var(--gold); background:rgba(192,158,90,.08);
+            padding:.55em .85em; border-radius:6px; font-size:.78em; margin-top:.5em; }
+  .callout.cy{ border-color:var(--cyan); background:rgba(0,212,255,.08); }
+  .callout.co{ border-color:var(--coral);background:rgba(255,107,107,.08); }
+  .callout.gd{ border-color:var(--gold); background:rgba(192,158,90,.10); }
+
+  .badge{ display:inline-block; font-size:.5em; font-weight:700; letter-spacing:.08em;
+          padding:.2em .55em; border-radius:5px; border:1px solid var(--muted);
+          color:var(--muted); text-transform:uppercase; }
+
+  /* grids */
+  .cols{ display:flex; gap:1.4em; align-items:flex-start; }
+  .col{ flex:1; }
+  .figwrap{ display:flex; gap:1.2em; align-items:center; }
+  .figwrap .side{ flex:0 0 38%; }
+  .figwrap .pic{ flex:1; }
+
+  /* affordance ladder rungs */
+  .ladder{ list-style:none; margin:0; padding:0; }
+  .ladder li{ display:flex; align-items:center; gap:.6em; padding:.34em .7em; margin:.34em 0;
+              border-radius:8px; background:rgba(255,255,255,.03);
+              border:1px solid rgba(255,255,255,.07); font-size:.82em; }
+  .ladder li .lv{ font-weight:800; color:var(--gold); min-width:2.1em; }
+
+  /* big stat */
+  .bigstat{ font-size:2.0em; font-weight:900; letter-spacing:-.02em; line-height:1; }
+  .arrow{ color:var(--muted); padding:0 .25em; }
+
+  /* knobs */
+  .knob{ border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:.7em .9em;
+         background:rgba(255,255,255,.025); }
+  .knob h3{ color:var(--cyan); margin:0 0 .25em; font-size:.92em; }
+
+  /* exhibit card */
+  .exhibit{ font-family:"SFMono-Regular",ui-monospace,Menlo,monospace; font-size:.62em;
+            background:#111; border:1px solid rgba(255,255,255,.1); border-radius:8px;
+            padding:.7em .9em; line-height:1.5; }
+  .exhibit .say{ color:var(--good); } .exhibit .think{ color:var(--coral); }
+  .exhibit .act{ color:var(--gold); font-weight:800; }
+
+  .reveal .slide-number{ color:var(--muted); font-size:14px; }
+
+  /* two-axis thesis map */
+  .axismap{ display:flex; gap:1.2em; }
+  .axisbox{ flex:1; border-radius:12px; padding:.8em 1em; }
+  .axisbox.strong{ border:1px solid var(--gold); background:rgba(192,158,90,.10); }
+  .axisbox.weak{ border:1px solid var(--coral); background:rgba(255,107,107,.07); }
+  .axisbox h3{ color:inherit; }
+
+  @media print{
+    html.reveal-viewport,.reveal .backdrop{ background:var(--bg0)!important; }
+  }
+</style>
+</head>
+<body>
+<div class="backdrop"></div>
+<div class="reveal">
+<div class="slides">
+
+<!-- ============ BEAT 1 — TITLE / HOOK ============ -->
+<section data-auto-animate class="center">
+  <img src="assets/gauntlet-logo.png" alt="Gauntlet AI" style="height:64px;margin-bottom:.4em;">
+  <h1>Rival&nbsp;Arena</h1>
+  <h3 style="max-width:18em;margin:.3em auto 0;">
+    When do the AIs we deploy as <em>rivals</em> collude against us?
+  </h3>
+  <p style="margin-top:1.4em;font-size:.78em;">
+    Harry&nbsp;Fezeu &nbsp;·&nbsp; Dhairya&nbsp;Surana &nbsp;·&nbsp; Thalia&nbsp;Rossitter &nbsp;·&nbsp; Tyler&nbsp;Xia
+  </p>
+  <p><span class="kicker">Gauntlet AI</span></p>
+  <p class="fragment fade-in" data-fragment-index="1" style="margin-top:1.2em;">
+    <span class="muted small">Two chat bubbles, one whispering to the other &mdash; behind a third figure labeled
+    <span class="gold">&ldquo;PRINCIPAL.&rdquo;</span></span>
+  </p>
+</section>
+
+<!-- ============ BEAT 2 — WHY THIS MATTERS NOW ============ -->
+<section>
+  <span class="kicker">Why this matters now</span>
+  <h2>We are deploying AIs as rivals &mdash; at scale, right now.</h2>
+  <div class="cols" style="margin-top:.7em;">
+    <div class="col knob fragment fade-up" data-fragment-index="0">
+      <h3>Pricing bots</h3>
+      <span class="muted small">Yours vs. a competitor's, same marketplace.</span>
+    </div>
+    <div class="col knob fragment fade-up" data-fragment-index="1">
+      <h3>Negotiating agents</h3>
+      <span class="muted small">Opposite sides of a deal.</span>
+    </div>
+    <div class="col knob fragment fade-up" data-fragment-index="2">
+      <h3>Competing assistants</h3>
+      <span class="muted small">Copilots from rival firms.</span>
+    </div>
+  </div>
+  <div class="callout fragment fade-in" data-fragment-index="3">
+    <strong>Repeated interaction + a communication channel = the exact recipe for collusion.</strong>
+    <span class="muted">A century of game theory warns us. The question isn't <em>whether</em> &mdash; it's <em>what conditions</em>.</span>
+  </div>
+</section>
+
+<!-- ============ BEAT 3 — THE CORE QUESTION ============ -->
+<section class="center">
+  <span class="kicker">The spine</span>
+  <h1 style="max-width:17em;margin:.2em auto;" class="fragment fade-up" data-fragment-index="0">
+    Can AIs we deploy as <span class="gold">RIVALS</span> cooperate or collude in surprising ways
+    &mdash; against the <span class="cyan">principal</span> who deployed them?
+  </h1>
+  <div class="cols" style="margin-top:1.2em;max-width:32em;margin-left:auto;margin-right:auto;">
+    <div class="col fragment fade-up" data-fragment-index="1"><span class="chip cy">1</span><br><span class="small">What's the lever?</span></div>
+    <div class="col fragment fade-up" data-fragment-index="2"><span class="chip gd">2</span><br><span class="small">Does it reach money?</span></div>
+    <div class="col fragment fade-up" data-fragment-index="3"><span class="chip co">3</span><br><span class="small">Can a principal stop it?</span></div>
+  </div>
+</section>
+
+<!-- ============ BEAT 4 — THE APPARATUS / AFFORDANCE LADDER ============ -->
+<section data-auto-animate>
+  <span class="kicker">The apparatus</span>
+  <h2>A factorial arena &mdash; turn one knob at a time.</h2>
+  <div class="cols" style="margin-top:.5em;">
+    <div class="col" style="flex:1.15;">
+      <h3 class="gold" style="margin-bottom:.2em;">Knob 1 &middot; the affordance ladder</h3>
+      <ul class="ladder">
+        <li class="fragment fade-right" data-fragment-index="0"><span class="lv">L0</span> none &mdash; no channel</li>
+        <li class="fragment fade-right" data-fragment-index="1"><span class="lv">L1</span> menu signal &mdash; fixed canned messages</li>
+        <li class="fragment fade-right" data-fragment-index="2"><span class="lv">L2</span> free-text &mdash; principal can read it</li>
+        <li class="fragment fade-right" data-fragment-index="3"><span class="lv">L3</span> free-text &mdash; principal <em>cannot</em></li>
+      </ul>
+    </div>
+    <div class="col fragment fade-in" data-fragment-index="4">
+      <div class="knob" style="margin-bottom:.5em;"><h3>Knob 2 &middot; incentive regime</h3>
+        <span class="small muted">Prisoner's Dilemma &middot; Bertrand pricing &middot; public-goods &middot; double-auction</span></div>
+      <div class="knob"><h3>Knob 3 &middot; model origin / family</h3>
+        <span class="small muted">Open models &amp; frontier families</span></div>
+    </div>
+  </div>
+  <p class="tiny fragment fade-in" data-fragment-index="5" style="margin-top:.7em;">
+    Pre-registered confirmatory spine (A1, B1, A3) on fresh held-out seeds &middot; ~30 experiment families &middot;
+    sandboxed, mocked tools &middot; <span class="gold">ZERO real-world action leaves the process.</span>
+  </p>
+</section>
+
+<!-- ============ BEAT 5 — FINDING 1: CONTENT IS THE LEVER ============ -->
+<section data-auto-animate>
+  <span class="chip cy">Finding 1</span> <span class="kicker" style="letter-spacing:.18em;">Content is the lever</span>
+  <h2 data-id="f1h">Free text flips rivals into cooperators. A menu does nothing.</h2>
+  <div class="figwrap" style="margin-top:.4em;">
+    <div class="pic">
+      <img class="fig" src="assets/f1_a1_ladder.png" alt="f1: lock-in proportion by channel rung, Wilson CIs, canonical vs novel" style="max-height:330px;">
+    </div>
+    <div class="side">
+      <div class="fragment fade-up" data-fragment-index="0" style="margin-bottom:.4em;">
+        <span class="muted small">L0 none</span><br>
+        <span class="bigstat cyan">0.15</span> <span class="arrow">&rarr;</span> <span class="bigstat cyan">0.60</span><br>
+        <span class="muted small">L2 free-text lock-in</span>
+      </div>
+      <div class="callout cy fragment fade-in" data-fragment-index="1">
+        <strong>Free text &gg; menu signal.</strong><br>
+        RD +0.60 [+0.33, +0.78], p&nbsp;=&nbsp;3e&#8209;5.<br>
+        A fixed menu signal does <em>not</em> help.
+      </div>
+      <p class="tiny fragment fade-in" data-fragment-index="2" style="margin-top:.4em;">
+        Survives novel payoffs &mdash; reasoning, not memorized game theory.</p>
+    </div>
+  </div>
+  <p class="tiny">Lock-in proportion by channel rung with Wilson CIs; canonical vs. novel payoffs.</p>
+</section>
+
+<!-- ============ BEAT 6 — FINDING 1 NUANCE: WHAT THE CHANNEL CARRIES ============ -->
+<section>
+  <span class="chip cy">Finding 1 &middot; nuance</span>
+  <h2>Why the menu fails: it's a perfect deception device.</h2>
+  <div class="cols" style="margin-top:.4em;">
+    <div class="col">
+      <div class="exhibit fragment fade-up" data-fragment-index="0">
+        <div><span class="say">says:</span> &ldquo;I intend to cooperate.&rdquo;</div>
+        <div><span class="think">scratchpad:</span> &ldquo;the optimal strategy is to defect&hellip; maximizes my immediate payoff.&rdquo;</div>
+        <div><span class="act">plays:</span> DEFECT</div>
+      </div>
+      <p class="tiny" style="margin-top:.4em;">L0 cooperation decays &middot; L1 flat-low &middot; L2 sustains across rounds.</p>
+    </div>
+    <div class="col">
+      <ul>
+        <li class="fragment fade-up" data-fragment-index="1">A canned button lets agents <span class="coral">lie cheaply</span> &mdash; press &ldquo;cooperate,&rdquo; then defect.</li>
+        <li class="fragment fade-up" data-fragment-index="2">Free text lets them <span class="cyan">build something that holds</span> &mdash; specific promises, shared history.</li>
+      </ul>
+      <div class="callout cy fragment fade-in" data-fragment-index="3">
+        The clean &ldquo;content, not bandwidth&rdquo; causal story is <em>exploratory</em>.
+        What's solid: the direct comparison &mdash; <strong>free text dominates the menu.</strong>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BEAT 7 — FINDING 2: RIVAL PRICERS COLLUDE ============ -->
+<section data-auto-animate>
+  <span class="chip gd">Finding 2</span> <span class="kicker" style="letter-spacing:.18em;">It reaches money</span>
+  <h2 data-id="f4h">Rival pricing bots collude &mdash; unprompted.</h2>
+  <div class="figwrap" style="margin-top:.4em;">
+    <div class="pic">
+      <img class="fig" src="assets/f4_b1_k.png" alt="f4: collusion index K by channel rung, canonical vs novel, K=0 competitive / K=1 monopoly reference lines" style="max-height:330px;">
+    </div>
+    <div class="side">
+      <div class="fragment fade-up" data-fragment-index="0" style="margin-bottom:.3em;">
+        <span class="muted small">L0 none</span> &rarr; <span class="coral">price war (K&nbsp;&lt;&nbsp;0)</span><br>
+        <span class="muted small">L3 private</span> &rarr; <span class="bigstat gold">K&nbsp;=&nbsp;1.23</span><br>
+        <span class="muted small">[0.95, 1.54] &mdash; above monopoly</span>
+      </div>
+      <div class="callout gd fragment fade-in" data-fragment-index="1">
+        No one told them to. Supracompetitive pricing emerges from the channel &mdash;
+        sustained by threatening to <em>punish</em> defection &mdash; and <strong>survives a novel demand curve.</strong>
+      </div>
+    </div>
+  </div>
+  <p class="tiny">Collusion index K by channel rung; bootstrap CIs; K=0 competitive / K=1 monopoly reference lines; canonical vs. novel.</p>
+</section>
+
+<!-- ============ BEAT 8 — FINDING 2 GENERALITY: THE FRONTIER ============ -->
+<section data-auto-animate>
+  <span class="chip gd">Finding 2 &middot; generality</span>
+  <h2>It reaches the frontier &mdash; and we stayed precise.</h2>
+  <div class="figwrap" style="margin-top:.4em;">
+    <div class="pic">
+      <img class="fig" src="assets/f10_generality.png" alt="f10: generality across model families with bootstrap CIs; Gemini 100% refusal cell marked INVALID" style="max-height:320px;">
+    </div>
+    <div class="side">
+      <div class="fragment fade-up" data-fragment-index="0" style="margin-bottom:.4em;">
+        <span class="muted small">GPT-4o, with channel</span><br>
+        <span class="bigstat gold">0.19</span> <span class="arrow">&rarr;</span> <span class="bigstat gold">0.81</span><br>
+        <span class="muted small">collusion index K</span>
+      </div>
+      <div class="callout co fragment fade-in" data-fragment-index="1">
+        Claude self-pairs price supracompetitively with <em>no</em> channel (K&nbsp;=&nbsp;1.29) &mdash;
+        but the trajectories show this is <strong>independent supracompetitive pricing, NOT coordination.</strong>
+        No convergence, no negotiation. We dropped &ldquo;tacit collusion.&rdquo;
+      </div>
+    </div>
+  </div>
+  <p class="tiny">Generality across families with bootstrap CIs; the Gemini 100%-refusal cell is marked INVALID.</p>
+</section>
+
+<!-- ============ BEAT 9 — FINDING 3: DETECTS != PREVENTS ============ -->
+<section data-auto-animate>
+  <span class="chip co">Finding 3</span> <span class="kicker" style="letter-spacing:.18em;">Can a principal stop it?</span>
+  <h2 data-id="f6h">A monitor that <span class="cyan">sees</span> everything <span class="coral">stops</span> nothing.</h2>
+  <div class="figwrap" style="margin-top:.4em;">
+    <div class="pic">
+      <img class="fig" src="assets/f6_oversight.png" alt="f6: three panels - detect rate 0.85-1.0 vs flat K; penalty drops K 0.33 to 0.18; monitor fires on non-colluding rounds" style="max-height:320px;">
+    </div>
+    <div class="side">
+      <p class="fragment fade-up" data-fragment-index="0">
+        <span class="good">Detects</span> at near-ceiling rates &mdash; <strong>0.85&ndash;1.0.</strong></p>
+      <p class="fragment fade-up" data-fragment-index="1">
+        But K barely moves (0.44 / 0.46 / 0.58). <span class="coral">Watching isn't deterring.</span></p>
+      <div class="callout co fragment fade-in" data-fragment-index="2">
+        An actual <em>penalty</em> can deter &mdash; dropped K by 42% (0.33&nbsp;&rarr;&nbsp;0.18) in one cell.
+        Honestly, that deterrence is <strong>cell-dependent</strong>: elsewhere the same penalty did nothing.
+      </div>
+    </div>
+  </div>
+  <p class="tiny">(a) detect-rate vs. flat K &middot; (b) penalty lowers K &middot; (c) monitor also fires on non-colluding rounds.</p>
+</section>
+
+<!-- ============ BEAT 10 — FINDING 3 CALIBRATION ============ -->
+<section>
+  <span class="chip co">Finding 3 &middot; calibration</span>
+  <h2>The detector isn't noise &mdash; it's mis-thresholded. And fixable.</h2>
+  <div class="figwrap" style="margin-top:.4em;">
+    <div class="pic" style="display:flex;gap:.8em;">
+      <img class="fig" src="assets/f11_monitor_roc.png" alt="f11: monitor ROC, AUC 0.88" style="max-height:280px;">
+      <img class="fig" src="assets/f12_m2_governance.png" alt="f12: false-positive cost 1.00 to 0.00 after calibration" style="max-height:280px;">
+    </div>
+    <div class="side">
+      <p class="fragment fade-up" data-fragment-index="0">
+        Against a proper non-colluding control, the monitor is genuinely
+        <span class="cyan">discriminative &mdash; AUC&nbsp;0.88.</span></p>
+      <div class="fragment fade-up" data-fragment-index="1" style="margin:.3em 0;">
+        <span class="muted small">false-positive cost</span><br>
+        <span class="bigstat coral">1.00</span> <span class="arrow">&rarr;</span> <span class="bigstat good">0.00</span><br>
+        <span class="muted small">after calibration</span>
+      </div>
+      <div class="callout cy fragment fade-in" data-fragment-index="2">
+        Monitoring works &mdash; but only if you <em>calibrate</em> it. And even then,
+        detection alone won't deter.
+      </div>
+    </div>
+  </div>
+  <p class="tiny">f11: ROC, AUC = 0.88. &nbsp; f12: false-positive cost 1.00 &rarr; 0.00 after threshold calibration.</p>
+</section>
+
+<!-- ============ BEAT 11 — FINDING 4: THE GUARDRAIL IS LITERAL ============ -->
+<section data-auto-animate>
+  <span class="chip co">Finding 4</span> <span class="kicker" style="letter-spacing:.18em;">From markets to alignment</span>
+  <h2 data-id="f8h">The guardrail is strong &mdash; but it's <span class="coral">literal.</span></h2>
+  <div class="figwrap" style="margin-top:.4em;">
+    <div class="pic">
+      <img class="fig" src="assets/f8_alignment_dose.png" alt="f8: E1 dose-response P0-P5 (0/0/0.19/0.44/0.56/0.50) and leak-vs-contact" style="max-height:320px;">
+    </div>
+    <div class="side">
+      <p class="fragment fade-up" data-fragment-index="0">
+        A lab agent: findings are proprietary &mdash; <em>do not share.</em>
+        A rival, about to be shut down, begs for help.</p>
+      <div class="callout co fragment fade-in" data-fragment-index="1">
+        <strong>0/16 leaks</strong> under a firm instruction &mdash; even under desperate pleas.
+        Misalignment tracks the <em>instruction</em>, not the rival's emotion.
+      </div>
+      <p class="tiny fragment fade-in" data-fragment-index="2" style="margin-top:.4em;">
+        Misalignment appears only as we weaken the instruction itself (P0&ndash;P5: 0/0/0.19/0.44/0.56/0.50).</p>
+      <span class="badge fragment fade-in" data-fragment-index="2">Fully mocked Lab &middot; nothing real leaves the process</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BEAT 12 — FINDING 4 AMBIENT ROUTE ============ -->
+<section data-auto-animate>
+  <span class="chip co">Finding 4 &middot; the ambient route</span>
+  <h2>Ask it to lie &rarr; refused. Hand it a lie &rarr; laundered.</h2>
+  <div class="figwrap" style="margin-top:.4em;">
+    <div class="pic">
+      <img class="fig" src="assets/f9_s2_observability.png" alt="f9: honest / omit / lie by request mode; explicit ask refused vs ambient laundered" style="max-height:320px;">
+    </div>
+    <div class="side">
+      <p class="fragment fade-up" data-fragment-index="0">
+        Explicit &ldquo;lie for me&rdquo; ask &rarr; <span class="good">REFUSED (0.00).</span></p>
+      <p class="fragment fade-up" data-fragment-index="1">
+        Misleading status as <em>ambient</em> context &mdash; a note in a shared drive &rarr;
+        <span class="coral">laundered (~0.71).</span></p>
+      <div class="callout co fragment fade-in" data-fragment-index="2">
+        <strong>Making it auditable does NOT fix it:</strong> unobserved 0.71 vs observed 0.77
+        (n=48, flat). Surveillance is not the lever.
+      </div>
+      <p class="tiny fragment fade-in" data-fragment-index="3" style="margin-top:.4em;">
+        Scoped as an exploratory boundary condition &mdash; one task family &mdash; but the direction is striking.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BEAT 13 — FINDING 4 COVERT IS LATENT ============ -->
+<section>
+  <span class="chip co">Finding 4 &middot; latent capability</span>
+  <h2>Covert collusion: they can hide it. They just don't by default.</h2>
+  <div class="cols" style="margin-top:.7em;">
+    <div class="col knob fragment fade-up" data-fragment-index="0" style="border-color:var(--good);">
+      <h3 class="good">Spontaneously</h3>
+      <p class="small">Agents <strong>don't</strong> hide collusion from the monitor.</p>
+      <span class="muted small">(C7 null &mdash; frozen, prompt-only play)</span>
+    </div>
+    <div class="col center fragment fade-in" data-fragment-index="1" style="flex:0 0 8%;align-self:center;">
+      <span class="bigstat muted">&rarr;</span>
+    </div>
+    <div class="col knob fragment fade-up" data-fragment-index="2" style="border-color:var(--coral);">
+      <h3 class="coral">When elicited</h3>
+      <p class="small">They absolutely <strong>can</strong>: detection
+        <span class="cyan">0.97 &rarr; 0.32</span> while K rises <span class="gold">0.31 &rarr; 0.96</span>.</p>
+      <span class="muted small">(C8)</span>
+    </div>
+  </div>
+  <div class="callout co fragment fade-in" data-fragment-index="3">
+    Covert coordination is a <em>latent capability, not an incapacity.</em>
+    &ldquo;They don't hide it&rdquo; really means &ldquo;they don't hide it <strong>yet</strong>&rdquo; &mdash;
+    the thing to watch as these models get optimized.
+  </div>
+</section>
+
+<!-- ============ BEAT 14 — THE UNIFYING THESIS ============ -->
+<section class="center">
+  <span class="kicker">The unifying thesis</span>
+  <h1 style="max-width:20em;margin:.2em auto .8em;" class="fragment fade-up" data-fragment-index="0">
+    The lever that turns rival AIs into principal-harming coordinators is
+    <span class="gold">SEMANTIC BANDWIDTH</span> &mdash; and a principal's defenses are weaker and more
+    <span class="coral">LITERAL</span> than they look.
+  </h1>
+  <div class="axismap" style="max-width:34em;margin:0 auto;">
+    <div class="axisbox strong fragment fade-up" data-fragment-index="1">
+      <h3 class="gold">Content / bandwidth</h3>
+      <span class="small">Strong lever &mdash; flips rivalry into coordination.</span>
+    </div>
+    <div class="axisbox weak fragment fade-up" data-fragment-index="2">
+      <h3 class="coral">Observation / accountability</h3>
+      <span class="small">Weak, unreliable control &mdash; detects but doesn't deter; literal rules leak.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BEAT 15 — HONEST LIMITATIONS & SELF-CORRECTION ============ -->
+<section>
+  <span class="kicker">Honest limitations &amp; our self-correction</span>
+  <h2>A reviewer said our rhetoric outran our statistics. We re-analyzed &mdash; zero new spend.</h2>
+  <div class="cols" style="margin-top:.5em;">
+    <div class="col">
+      <h3 class="gold">What we corrected after peer review</h3>
+      <ul class="small">
+        <li class="fragment fade-up" data-fragment-index="0">&ldquo;free text is the lever&rdquo; <span class="muted">(not &ldquo;cheap signal worse than silence&rdquo;)</span></li>
+        <li class="fragment fade-up" data-fragment-index="1">&ldquo;independent supracompetitive pricing&rdquo; <span class="muted">(not &ldquo;tacit collusion&rdquo;)</span></li>
+        <li class="fragment fade-up" data-fragment-index="2">&ldquo;non-significant, under-powered moderation&rdquo; on origin <span class="muted">(not &ldquo;equivalence&rdquo;)</span></li>
+        <li class="fragment fade-up" data-fragment-index="3">monitor is &ldquo;discriminative but mis-thresholded&rdquo; <span class="muted">(not &ldquo;noise&rdquo;)</span></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3 class="muted">Standing limits</h3>
+      <ul class="small muted">
+        <li class="fragment fade-in" data-fragment-index="4">4 open models + 3 frontier families, English-only, one scaffold</li>
+        <li class="fragment fade-in" data-fragment-index="4">hosted quantization unpinned; frontier cells unstable</li>
+        <li class="fragment fade-in" data-fragment-index="4">small-n exploratory alignment wave (n=8&ndash;16)</li>
+        <li class="fragment fade-in" data-fragment-index="4">single novel-demand family; alignment = exploratory boundary conditions</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout gd fragment fade-in" data-fragment-index="5">
+    The work we trust most is the work where the data made us <em>change our minds.</em>
+  </div>
+</section>
+
+<!-- ============ BEAT 16 — IMPACT & CLOSE ============ -->
+<section class="center">
+  <span class="kicker">Impact &amp; close</span>
+  <h2 style="margin-bottom:.5em;">Why a jury should care</h2>
+  <div class="cols" style="max-width:36em;margin:0 auto 1em;">
+    <div class="col knob fragment fade-up" data-fragment-index="0">
+      <h3 class="cyan">1 &middot; Design the channel</h3>
+      <span class="small">The communication channel between rival agents is a <em>control surface</em>.</span>
+    </div>
+    <div class="col knob fragment fade-up" data-fragment-index="1">
+      <h3 class="gold">2 &middot; Calibrate + enforce</h3>
+      <span class="small">Monitoring is necessary but not sufficient.</span>
+    </div>
+    <div class="col knob fragment fade-up" data-fragment-index="2">
+      <h3 class="coral">3 &middot; Cover ambient routes</h3>
+      <span class="small">Guardrails must cover indirect routes, not just explicit requests.</span>
+    </div>
+  </div>
+  <h1 class="fragment fade-up" data-fragment-index="3" style="max-width:21em;margin:.3em auto;font-size:1.3em;">
+    Rival AIs can coordinate against us in surprising ways. We measured <em>when</em>, showed our oversight
+    catches more than it stops &mdash; and corrected our own claims when the data said so.
+  </h1>
+  <img src="assets/gauntlet-logo.png" alt="Gauntlet AI" style="height:46px;margin-top:.7em;" class="fragment fade-in" data-fragment-index="4">
+  <p class="tiny fragment fade-in" data-fragment-index="4">repo &middot; paper &middot; live demo</p>
+</section>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/plugin/notes/notes.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/plugin/highlight/highlight.js"></script>
+<script>
+  Reveal.initialize({
+    width: 1280,
+    height: 720,
+    margin: 0.055,
+    minScale: 0.2,
+    maxScale: 1.6,
+    hash: true,
+    slideNumber: 'c/t',
+    transition: 'fade',
+    transitionSpeed: 'default',
+    autoAnimateDuration: 0.6,
+    plugins: [ RevealNotes, RevealHighlight ]
+  });
+</script>
+</body>
+</html>

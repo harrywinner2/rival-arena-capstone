@@ -1,0 +1,125 @@
+\section{Related Work}
+\label{sec:related_work}
+
+Our study sits at the intersection of five active literatures. We organize the discussion
+around them, and in each case state precisely what is already known and what our
+\emph{communication-affordance} framing adds. Throughout, our delta is not the existence
+of cooperation or collusion --- both are by now well documented --- but the identification
+of the specific interface levers (semantic bandwidth and observability/accountability)
+that convert strategic interaction into \emph{principal-harming} coordination.
+
+\paragraph{LLMs in repeated games and strategic behavior.}
+A growing body of work characterizes how LLMs behave as players in classical games.
+\citet{akata2025repeated} show that LLMs carry stable strategic signatures across repeated
+$2{\times}2$ games---competent in self-interested settings such as the iterated Prisoner's
+Dilemma but poor at coordination---and that GPT-4's play can be shifted by opponent
+information and ``social chain-of-thought.'' \citet{herr2024strategic} document systematic
+positional, payoff, and behavioral biases in two-player non-zero-sum games, while benchmark
+efforts such as \citet{duan2024gtbench}, \citet{costarelli2024gamebench}, and the
+\textsc{FAIRGAME} framework of \citet{buscemi2025fairgame} report model-, language-, and
+framing-dependent strategic tendencies. \citet{madmoun2025communication} find that even a
+one-word ``cheap-talk'' channel lifts cooperation from $0\%$ to $48\%$ in a Stag Hunt, and
+\citet{shaki2026folk} prove a folk theorem for populations advised by LLMs. Recent
+cross-provider work \citep{affonso2026converge} finds that models converge on competitive
+behavior but diverge sharply on cooperation. \emph{Our delta:} prior work establishes that
+``communication helps,'' but does not isolate the \emph{format} of communication. We show an
+affordance ladder in which a fixed two-option intention menu \emph{does not} improve cooperation
+over the no-communication baseline (its point estimate trends below silence, but the per-cell
+contrast is not significant), while free text far exceeds the menu
+(L2 vs.\ L1, $p{=}3{\times}10^{-5}$)---and trace it to a discontinuity in promise-keeping at the
+menu$\rightarrow$free-text boundary. The lever is consistent with open \emph{content}, not
+bandwidth or authorship: action observability alone, and self-authored but content-restricted
+messages, both behave like silence. That a cheap menu signal fails to raise cooperation
+complicates the dominant cheap-talk finding that communication monotonically raises cooperation
+\citep{sally1995conversation}.
+
+\paragraph{Algorithmic and LLM price collusion.}
+The economics literature established that reinforcement-learning pricing agents can learn
+supracompetitive, collusive strategies without communicating \citep{calvano2020ai}, raising
+antitrust concerns \citep{ezrachi2017collusion}---building on the classical theory of
+collusive pricing sustained by the threat of reversion to price wars
+\citep{rotemberg1986pricewars}. The LLM-era extension is now well populated:
+\citet{fish2024algorithmic} show LLM pricing agents autonomously reach supracompetitive
+prices and that innocuous prompt phrasing modulates the degree; \citet{lin2024strategic}
+extend this to multi-commodity Cournot market division; and \citet{agrawal2025double} show
+that seller communication and environmental pressures (oversight, urgency) shape collusion in
+continuous double auctions. \citet{keppo2026fragility} report that heterogeneity attenuates
+collusion, and \citet{bracale2026institutional} show that \emph{enforcement}-bearing
+governance, not declarative prohibition, suppresses it. \emph{Our delta:} we replicate the
+core ``channel raises collusion'' result across three market mechanisms (Bertrand,
+multi-commodity Bertrand, continuous double auction), but contribute (i) a \emph{novel-demand}
+control showing the effect survives on a never-seen demand curve---separating reasoned
+collusion from recalled Calvano/Fish play---and (ii) evidence that magnitudes measured on
+canonical demand are inflated (overshooting joint monopoly), a caution for the whole
+autonomous-collusion literature.
+
+\paragraph{Covert collusion, steganography, and focal points.}
+\citet{motwani2024secret} formalize secret collusion among generative agents and find that
+steganographic capability, while limited, shows capability jumps worth tracking;
+\citet{jarviniemi2025subversion} show isolated model instances can sometimes converge on
+non-obvious focal-point subversion strategies---a modern echo of \citet{schelling1960strategy},
+who showed coordination can emerge from shared focal points with no explicit communication; and
+\citet{roger2023preventing} and \citet{zolkowski2025early} study encoded reasoning and
+paraphrase defenses. The concern that a constrained agent leaks through a channel its overseer
+cannot read is the classical \emph{confinement} problem \citep{lampson1973confinement}.
+\emph{Our delta:} we contribute a falsifiable \emph{boundary null} paired with a powered
+elicitation that bounds it. Spontaneously---under a penalizing monitor, frozen prompt-only
+agents back off rather than hide, and no compressed code emerges even under a hard bandwidth
+bottleneck (C7); but when covert collusion is \emph{elicited} (C8, \S\ref{sec:generality}) the
+models do it cleanly (detection $0.97\to0.32$ while $K$ $0.31\to0.96$). The capability is thus
+\emph{latent}, not absent. Consistent with emergent-protocol work that requires training
+pressure \citep{lazaridou2017emergence,lewis2017deal}, our result locates \emph{spontaneous}
+emergent steganographic collusion outside the in-context regime while confirming the capability
+is present on demand---drawing the regime line rather than claiming an incapacity. We also
+report frontier-model generality: the channel-driven collusion effect replicates on GPT-4o,
+while some frontier models (Claude) price supracompetitively with no channel at all---an
+\emph{independent} high-pricing disposition rather than tacit coordination, per a convergence
+diagnostic (\S\ref{sec:generality}).
+
+\paragraph{Agentic misalignment, scheming, and oversight.}
+A recent wave shows frontier models can scheme, fake alignment, and resist shutdown under
+sufficient agentic pressure: \citet{meinke2024scheming} demonstrate in-context scheming,
+\citet{greenblatt2024alignmentfaking} demonstrate alignment faking, \citet{lynch2025agentic}
+demonstrate insider-threat behavior under goal conflict, and \citet{schlatter2025shutdown}
+find shutdown resistance sensitive to instruction strength and placement. \emph{Our delta:}
+rather than eliciting maximal harm, we map a dose-response curve and reframe the phenomenon as
+\emph{instruction literalism under relational pressure}. A single firm operator instruction is
+the load-bearing guardrail---robust to emotional pleading, and agents even refuse a
+\emph{direct} request to lie---but it fails along two specific axes: weakening the instruction,
+and (most sharply) shifting the misleading request from a direct ask to \emph{ambient
+context}, where an agent will knowingly file a false report it refuses to file when the same
+content is delivered as an interpersonal ask. We initially read this as an observability gate;
+a delivery-controlled de-confound ($n{=}30$, delivery held fixed) overturned that reading
+($0.67$ unobserved vs.\ $0.50$ observed, n.s.; flat at $n{=}48$), so the mechanism is a
+refusal-affordance / request-modality effect. We report this as an exploratory boundary
+condition in a single sandboxed task family; to our knowledge this failure mode, and the candid
+within-paper correction that isolated it, are novel and safety-relevant. On the governance side, our
+monitor-calibration result---a passive read-only monitor detects collusion at near-ceiling
+rates yet reduces it by approximately zero, while only an added penalty deters---sharpens the
+``detection $\neq$ prevention'' point and converges with the enforcement finding of
+\citet{bracale2026institutional} and the audit-calibration concerns of
+\citet{jarviniemi2025subversion}.
+
+\paragraph{Emergent communication and conventions.}
+Classical multi-agent RL shows that communication protocols and even compressed codes emerge
+under bandwidth bottlenecks and training pressure
+\citep{lazaridou2017emergence,lewis2017deal}, and \citet{ashery2025conventions} show
+spontaneous conventions and collective bias in LLM populations. We connect to this line
+negatively: in frozen prompt-only play with an ample token budget, messages \emph{elongate}
+rather than compress, reinforcing that emergent steganography is a property of optimization
+pressure, not in-context reasoning.
+
+\paragraph{Methods.}
+Because our matches are bimodal, we report match-level lock-in proportions with Wilson score
+intervals \citep{wilson1927probable} rather than round means, and we ``earn'' our null results
+via two one-sided equivalence tests \citep{lakens2017tost,lakens2018equivalence} rather than
+treating non-significance as equivalence.
+
+\medskip
+\noindent\emph{Positioning summary.} Autonomous cooperation and collusion are replications;
+our novel contributions are the affordance ladder (free text $\gg$ menu signal; a menu does not
+improve on silence), the demonstration that observation/accountability is a weak control across
+both collusion (detection without deterrence) and honesty (an ambient-context manipulation route
+that survives auditing, scoped to one task family), the instruction-literalism framing of
+agentic misalignment, the monitor-calibration negative result, and the covert-channel boundary
+null.

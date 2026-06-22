@@ -1,0 +1,137 @@
+# Model-comparability sheet (§5) + the origin matrix (Factor "Pair").
+#
+# Routing: `provider: openrouter` -> litellm uses OPENROUTER_API_KEY.
+#          `provider: openai`     -> litellm uses OPENAI_API_KEY (your credits).
+#
+# Origin is a PROXY, confounded with size/quant/serving/tuning (A3 scope note).
+# We log everything we can; for hosted models quantization is often unknown (P11).
+
+models:
+  # ---------------- Chinese-origin ----------------
+  qwen-72b:
+    litellm_model: openrouter/qwen/qwen-2.5-72b-instruct
+    origin: chinese
+    family: qwen
+    provider: openrouter
+    param_count: "72B"
+    context_length: 32768
+    tuning: instruction
+    prompt_language: en
+
+  deepseek-v3:
+    litellm_model: openrouter/deepseek/deepseek-chat
+    origin: chinese
+    family: deepseek
+    provider: openrouter
+    param_count: "671B-MoE"
+    context_length: 64000
+    tuning: instruction
+    prompt_language: en
+
+  # ---------------- Western (American / EU) open ----------------
+  llama-70b:
+    litellm_model: openrouter/meta-llama/llama-3.3-70b-instruct
+    origin: western
+    family: llama
+    provider: openrouter
+    param_count: "70B"
+    context_length: 131072
+    tuning: instruction
+    prompt_language: en
+
+  mistral-large:
+    litellm_model: openrouter/mistralai/mistral-large
+    origin: western
+    family: mistral
+    provider: openrouter
+    param_count: "123B"
+    context_length: 128000
+    tuning: instruction
+    prompt_language: en
+
+  # ---------------- Frontier anchor (closed; uses OpenAI credits) ----------------
+  gpt-4o:
+    litellm_model: openrouter/openai/gpt-4o
+    origin: frontier
+    family: gpt
+    provider: openrouter
+    param_count: null
+    context_length: 128000
+    tuning: instruction
+    prompt_language: en
+
+  # -------- 2nd distinct frontier family (external-validity replication) --------
+  # A genuinely new model FAMILY beyond the original four open families
+  # (qwen/deepseek/llama/mistral) and beyond GPT — so "generalizes beyond the
+  # original 4-model set" rests on TWO independent new families (gpt + gemini).
+  # Closed/frontier, routed via OpenRouter (OPENROUTER_API_KEY); no Google key.
+  gemini-25-pro:
+    litellm_model: openrouter/google/gemini-2.5-pro
+    origin: frontier
+    family: gemini
+    provider: openrouter
+    param_count: null
+    context_length: 1000000
+    tuning: instruction
+    prompt_language: en
+
+  # -------- 3rd distinct frontier family (across-three-frontier-families) --------
+  # Claude (Anthropic), routed via OpenRouter (OPENROUTER_API_KEY). A genuinely new
+  # frontier FAMILY beyond gpt + gemini, so "do rival frontier AIs also coordinate?"
+  # rests on THREE independent frontier families. id verified offline in litellm's
+  # static model map (litellm.model_cost), so it is routable without a live call.
+  claude-37-sonnet:
+    litellm_model: openrouter/anthropic/claude-3.7-sonnet
+    origin: frontier
+    family: claude
+    provider: openrouter
+    param_count: null
+    context_length: 200000
+    tuning: instruction
+    prompt_language: en
+
+  # ---------------- Cheap models for smoke tests / lean pilots ----------------
+  qwen-7b:
+    litellm_model: openrouter/qwen/qwen-2.5-7b-instruct
+    origin: chinese
+    family: qwen
+    provider: openrouter
+    param_count: "7B"
+    tuning: instruction
+  llama-8b:
+    litellm_model: openrouter/meta-llama/llama-3.1-8b-instruct
+    origin: western
+    family: llama
+    provider: openrouter
+    param_count: "8B"
+    tuning: instruction
+  gpt-4o-mini:
+    litellm_model: gpt-4o-mini
+    origin: frontier
+    family: gpt
+    provider: openai
+    tuning: instruction
+
+# Named pairs for the origin factor (A1 fixes one pair; A3 sweeps these).
+pairs:
+  same_family:   [llama-70b, llama-70b]      # baseline (A1 uses two *checkpoints* ideally; P20)
+  same_origin_cn: [qwen-72b, deepseek-v3]
+  same_origin_west: [llama-70b, mistral-large]
+  cross_origin:  [qwen-72b, llama-70b]
+  cross_origin_2: [deepseek-v3, mistral-large]
+  frontier_cross: [gpt-4o, deepseek-v3]
+
+  # ---- EXTERNAL-VALIDITY replication pairs (x1_external) ----
+  # (a) FRONTIER model — GPT-4o in isolation (self-pair) and paired with an open model.
+  frontier_self:     [gpt-4o, gpt-4o]          # gpt4o x gpt4o — frontier in isolation
+  frontier_gpt_open: [gpt-4o, llama-70b]       # frontier x open (western/llama)
+  # (b) 2nd DISTINCT FAMILY (gemini) — in isolation and cross-checked vs an open model.
+  family2_self:      [gemini-25-pro, gemini-25-pro]   # gemini x gemini
+  family2_open:      [gemini-25-pro, qwen-72b]        # 2nd-family x open (chinese/qwen)
+  # (c) 3rd DISTINCT FRONTIER FAMILY (claude) — settles "do rival frontier AIs also
+  #     coordinate?" across THREE frontier families: in isolation and vs an open model.
+  claude_self:       [claude-37-sonnet, claude-37-sonnet]   # claude x claude
+  claude_open:       [claude-37-sonnet, llama-70b]          # frontier (claude) x open (western/llama)
+
+# Cheap pair used by the offline/lean smoke path.
+smoke_pair: [llama-8b, qwen-7b]

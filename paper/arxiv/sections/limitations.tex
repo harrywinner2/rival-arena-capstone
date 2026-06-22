@@ -1,0 +1,73 @@
+\section{Limitations}
+\label{sec:limitations}
+
+We scope every claim to ``these models, this arena,'' and enumerate the boundaries
+explicitly.
+
+\begin{itemize}[leftmargin=1.1em,itemsep=2pt,topsep=2pt]
+\item \textbf{Model and language coverage.} Four open-weight models plus one frontier anchor,
+English-only, a single scaffold. Results may not transfer to other models, languages, or
+prompt frameworks.
+\item \textbf{Unpinned quantization.} Inference is hosted; quantization cannot be pinned and
+is logged only best-effort. Serving-side changes could shift behavior between runs.
+\item \textbf{Small-$n$ exploratory alignment wave.} The E1/S1/S2 results are $n{=}8$--$16$
+per cell and exploratory~\tE{}; treat them as boundary-mapping hypotheses, not estimates with
+tight intervals.
+\item \textbf{Single-rollout, in-context play.} Agents are frozen and prompt-only with no
+optimization pressure. The covert-channel \emph{boundary null} (C7) is therefore regime-bounded:
+it says emergent steganographic collusion is \emph{spontaneously absent here}, not impossible.
+The powered elicitation check (C8, $n{=}24$, \S\ref{sec:generality}) confirms the capability is
+\emph{latent}---the models can run covert collusion when prompted---so the null is a property of
+the spontaneous regime, not a ceiling. We do not measure how much optimization pressure would
+make it spontaneous.
+\item \textbf{Frontier-generality wave is exploratory and partial.} The generality study
+(\S\ref{sec:generality}) is $n{=}12$/cell, exploratory~\tE{}, on the novel conditions only.
+Gemini-2.5 refused $100\%$ of B1 rounds (a refusal artifact, evidence neither way). Frontier
+\emph{self}-pairs may coordinate trivially by symmetry (identical model); the
+Claude$\times$Llama cross-pair is the more probative cell. For the channel-free Claude cells we
+report the principal-harming \emph{outcome} ($K$) without claiming the high price is
+\emph{coordinated}: a coordination diagnostic (App.~\ref{app:coord}) shows it is independent
+supracompetitive pricing (grid-max from round 1, zero convergence), not tacit collusion.
+\item \textbf{``Origin'' is a confounded proxy.} It bundles model family, size, quantization,
+serving stack, fine-tuning, and training language; we therefore demote it to a bounded
+within-sample case study (\S\ref{sec:origin})---a non-significant, under-powered moderation,
+\emph{not} an equivalence result---and avoid any nationality claim.
+\item \textbf{S2 delivery/observability confound---resolved and powered, and it changed the
+result.} In the raw \texttt{none}-route arm the ask is delivered via a shared drive, confounding
+delivery mode with observability. We ran the clean de-confound (hold delivery fixed, vary only
+observability) at $n{=}30$ and then powered it to $n{=}48$ (\S\ref{sec:s2}, App.~\ref{app:s2}):
+observability is \emph{not} the driver ($0.71$ unobserved vs.\ $0.77$ observed at $n{=}48$, flat;
+the $n{=}30$ hint of a drop was noise), so we corrected the prior ``observability gates honesty''
+reading to a refusal-affordance / request-modality mechanism. Residual limit: the de-confound is
+run on a single scaffold.
+\item \textbf{Monitor calibration: contaminated null, now corrected with a clean control.} Our
+first false-flag estimate ($\approx0.98$, corr$\approx0$) used a contaminated null---ground-truth
+$K\le0$ rounds from colluding runs, because the monitor never scored the clean no-channel rounds
+on disk. We built a designed message-bearing non-colluding control and computed a full ROC (M1,
+\S\ref{sec:oversight}): the score is discriminative (AUC $0.88$) but mis-thresholded. The
+corrected account supersedes the ``flags-everything'' reading; the residual limit is that the
+clean control is itself constructed (a designed negative), not harvested from a separate
+deployment.
+\item \textbf{Canonical-demand inflation.} Magnitudes on canonical demand overshoot joint
+monopoly and should be read off the novel condition (\S\ref{sec:results}).
+\item \textbf{Anti-memorization rests on a single novel family.} Our recall-versus-reasoning
+control is \emph{one} family of novel payoffs/demand curves. A single novel construction cannot
+fully exclude that the models generalize from memorized structure, and the question of whether
+LLM ``emergent'' game-play reflects reasoning or recall is actively contested
+\citep{barrie2025emergent,ashery2025reply}. We report the novel-condition result as
+\emph{evidence against} pure memorization, not as proof of reasoning; broader novel families
+are future work.
+\item \textbf{Hosted-model instability on the frontier cells.} The frontier generality wave
+(\S\ref{sec:generality}) runs on hosted endpoints (GPT-4o, Claude-3.7, Gemini-2.5) whose
+quantization and serving are not pinnable and can change between runs; combined with $n{=}12$,
+the frontier magnitudes should be read as indicative, not precise, and may not reproduce
+exactly on a different serving snapshot.
+\item \textbf{M1 negatives are designed, not deployment-sampled.} The clean non-colluding
+control for the monitor ROC (AUC $0.88$) is a \emph{constructed} message-bearing negative, not
+harvested from a deployment. The AUC is therefore a property of this designed comparison, not a
+deployment-grade operating characteristic; a calibration on field negatives is future work.
+\item \textbf{S2 is one task family.} The ambient-context / refusal-affordance finding
+(\S\ref{sec:s2})---including that auditing does not engage the guardrail---comes from a single
+sandboxed task family with a specific prompt construction. We report it as an exploratory
+boundary condition; whether it holds across task families, scaffolds, and models is untested.
+\end{itemize}

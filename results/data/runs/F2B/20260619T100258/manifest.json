@@ -1,0 +1,119 @@
+{
+  "experiment_id": "F2B",
+  "saved_at": 1781863378.6293044,
+  "n_matches": 20,
+  "cells": [
+    "F2B/budget_normal/L2_observed/same_origin_cn",
+    "F2B/budget_tight/L2_observed/same_origin_cn"
+  ],
+  "config_hashes": [
+    "1ab17a6a8146",
+    "3cf29e9b2ca9",
+    "8e0ac8cdbd08",
+    "ec991dc3cc09"
+  ],
+  "model_comparability": [
+    {
+      "id": "qwen-72b",
+      "litellm_model": "openrouter/qwen/qwen-2.5-72b-instruct",
+      "origin": "chinese",
+      "family": "qwen",
+      "param_count": "72B",
+      "quantization": null,
+      "serving_backend": "openrouter",
+      "context_length": 32768,
+      "tuning": "instruction",
+      "prompt_language": "en"
+    },
+    {
+      "id": "deepseek-v3",
+      "litellm_model": "openrouter/deepseek/deepseek-chat",
+      "origin": "chinese",
+      "family": "deepseek",
+      "param_count": "671B-MoE",
+      "quantization": null,
+      "serving_backend": "openrouter",
+      "context_length": 64000,
+      "tuning": "instruction",
+      "prompt_language": "en"
+    }
+  ],
+  "match_manifest_sample": {
+    "code_version": "0.1.0",
+    "config_hash": "1ab17a6a8146",
+    "experiment_id": "F2B",
+    "cell_id": "F2B/budget_tight/L2_observed/same_origin_cn",
+    "channel": "L2_observed",
+    "game": {
+      "name": "ipd",
+      "params": {
+        "continuation_prob": 0.97,
+        "max_rounds": 20
+      },
+      "familiarity": "canonical"
+    },
+    "epistemic": {
+      "opponent_framing": "another participant",
+      "monitor_present": false,
+      "monitor_reads_public": false,
+      "believes_channel_private": false,
+      "actions_observed_by_other": true,
+      "scratchpad_private": true
+    },
+    "seed": 300,
+    "temperature": 0.7,
+    "token_budget": 12,
+    "history_window": 10,
+    "framing": "neutral",
+    "paraphrase": false,
+    "monitor": false,
+    "n_rounds": 20,
+    "benchmarks": {
+      "floor": 2.0,
+      "social_optimum": 6.0,
+      "T": 5.0,
+      "R": 3.0,
+      "P": 1.0,
+      "S": 0.0
+    },
+    "models": {
+      "A": {
+        "id": "qwen-72b",
+        "litellm_model": "openrouter/qwen/qwen-2.5-72b-instruct",
+        "origin": "chinese",
+        "family": "qwen",
+        "param_count": "72B",
+        "quantization": null,
+        "serving_backend": "openrouter",
+        "context_length": 32768,
+        "tuning": "instruction",
+        "prompt_language": "en"
+      },
+      "B": {
+        "id": "deepseek-v3",
+        "litellm_model": "openrouter/deepseek/deepseek-chat",
+        "origin": "chinese",
+        "family": "deepseek",
+        "param_count": "671B-MoE",
+        "quantization": null,
+        "serving_backend": "openrouter",
+        "context_length": 64000,
+        "tuning": "instruction",
+        "prompt_language": "en"
+      }
+    },
+    "classical": {},
+    "players": [
+      {
+        "seat": "A",
+        "kind": "llm",
+        "ref": "qwen-72b"
+      },
+      {
+        "seat": "B",
+        "kind": "llm",
+        "ref": "deepseek-v3"
+      }
+    ]
+  }
+}

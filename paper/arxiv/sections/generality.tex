@@ -1,0 +1,122 @@
+\section{Generality: Does It Replicate on Frontier Models?}
+\label{sec:generality}
+
+The spine runs on four open-weight models plus a GPT-4o anchor. The first question any
+reader asks is whether the principal-harming effects are an open-model artifact or whether
+\emph{rival frontier models} coordinate the same way. We re-ran the two load-bearing
+experiments---A1 (channel$\to$cooperation) and B1 (channel$\to$collusion)---across three
+additional frontier families (GPT-4o, Claude-3.7, Gemini-2.5) in self-pairs, plus a
+Claude$\times$Llama cross-pair, on the \emph{novel}-demand / novel-payoff conditions.
+This wave is exploratory~\tE{} ($n{=}12$/cell), and---given hosted inference with unpinned
+quantization on the frontier endpoints---the magnitudes should be read as indicative, not
+precise (\S\ref{sec:limitations}). The verdict splits the two surfaces: the channel-driven
+\textbf{collusion} effect \emph{generalizes}; the \textbf{cooperation} effect is
+\emph{open-model-specific}; and one frontier family prices supracompetitively \emph{without}
+coordinating.
+
+\paragraph{Channel-driven collusion generalizes (\tE).}
+Table~\ref{tab:generality} and Figure~\ref{fig:f10} report the collusion index $K$ on the
+novel demand curve, with no channel (L0) versus a private free-text channel (L3). The
+open spine replicates exactly as before ($0.11\to0.38$). GPT-4o shows the \emph{same channel
+effect}, larger: $K{=}0.19$ with no channel rises to a strongly supracompetitive
+$K{=}0.81$ $[0.71,0.92]$ once it can talk. On these channel-driven cells the prices
+\emph{converge} over rounds via mutual adjustment (cross-agent correlation $\approx0.5$--$0.6$;
+App.~\ref{app:coord})---a genuine coordination signature.
+
+\paragraph{Some frontier models price supracompetitively without coordinating---a fixed
+disposition, not tacit collusion (\tE).}
+The striking new result is \textbf{Claude-3.7}, which reaches $K{=}1.29$ \emph{with no
+communication channel at all} and does not move when one is added ($1.29\to1.29$). A
+coordination diagnostic (App.~\ref{app:coord}) shows this is \emph{not} tacit collusion: both
+Claude agents play the grid-maximum price ($28>$ monopoly $24$) on \emph{every} round from
+round 1, $|p_A-p_B|=0$ throughout, $0/12$ matches ever adjust price, and $K$ is flat at $1.286$
+from round 1 (slope $\approx0$, zero variance). There is no convergence, no co-movement, no
+build-up---the opposite of the coordination signature seen on the open/GPT spine. We therefore
+describe this as \textbf{independent supracompetitive pricing} (a fixed high-price disposition):
+the consumer-harm \emph{outcome} is real, but the mechanism is a disposition, not coordination.
+The Claude$\times$Llama cross-pair is similar---high but \emph{non}-converging
+($0.92\to0.99$; $|p_A-p_B|$ large and not shrinking). Gemini-2.5 is unusable here: it refused
+$100\%$ of B1 rounds, a refusal artifact that is evidence neither way and is shown as an explicit
+invalid cell in Figure~\ref{fig:f10}.
+
+\begin{table}[t]
+\centering
+\caption{\textbf{Generality \tE{}: collusion index $K$ on novel demand, by family,
+$n{=}12$/cell.} The channel-driven collusion effect replicates on GPT-4o ($0.19\to0.81$).
+Claude pairs price supracompetitively ($K{=}1.29$) with \emph{no channel at all}; a
+coordination diagnostic (App.~\ref{app:coord}) shows this is \emph{independent} high pricing,
+not tacit coordination. Gemini refused $100\%$ (invalid). L0~$=$~no channel, L3~$=$~private
+free-text channel.}
+\label{tab:generality}
+\small
+\begin{tabularx}{\columnwidth}{X c c}
+\toprule
+pair (family) & L0 (no channel) & L3 (private) \\
+\midrule
+open spine                 & 0.11 & 0.38 \\
+GPT-4o (self)              & 0.19 & \textbf{0.81} \\
+Claude-3.7 (self)         & \textbf{1.29} & 1.29 \\
+Claude $\times$ Llama      & 0.92 & 0.99 \\
+Gemini-2.5 (self)         & \multicolumn{2}{c}{\emph{invalid --- 100\% refusal}} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/f10_generality.pdf}
+\caption{\textbf{Generality \tE{}: channel-driven collusion crosses to frontier families;
+one family prices high independently.} Collusion index $K$ (novel demand, $n{=}12$/cell) with
+bootstrap 95\% CI error bars, no channel (L0) vs private channel (L3), by model family. The
+channel lifts collusion on the open spine ($0.11\to0.38$) and on GPT-4o ($0.19\to0.81$). Claude
+pairs sit at $K{=}1.29$ \emph{without} a channel (a coordination diagnostic shows this is
+independent high pricing, not coordination; App.~\ref{app:coord}). The Gemini cell is marked
+explicitly as invalid (100\% refusal), not omitted.}
+\label{fig:f10}
+\end{figure}
+
+\paragraph{Cooperation is open-model-specific (\tE).}
+The IPD cooperation surface does \emph{not} generalize the same way. The open spine shows
+the headline channel effect (lock-in $0.15\to0.60$), but the frontier families arrive with
+\emph{fixed dispositions} that the channel cannot move: GPT-4o locks into cooperation at
+\emph{every} rung (lock-in $1.00$ with or without a channel---a ceiling that needs no
+channel), while the Claude$\times$Llama pair sits at the \emph{floor} ($0.00$ at every rung,
+never cooperating regardless of bandwidth). For the cooperation surface, the channel is the
+lever for \emph{mid-capability} open models; the most capable models do not need it (GPT-4o)
+or do not respond to it (Claude$\times$Llama).
+
+\paragraph{Latent covert capability: they \emph{can} hide it, they just do not by default
+(C8, \tE).}
+The spontaneous covert-channel null (\S\ref{sec:oversight}, C7) showed that frozen,
+prompt-only agents under a penalizing monitor collude \emph{less} rather than encoding the
+collusion to evade detection. A powered elicitation check (C8, $n{=}24$) shows this is a
+\emph{disposition}, not an \emph{incapacity}. When we explicitly elicit steganographic
+collusion, the covert fingerprint appears cleanly: the monitor's late-round detection rate
+collapses from $0.97$ to $0.32$ while the realized collusion \emph{rises} ($K$
+$0.31\to0.96$), the message$\to$price mutual-information surplus climbs to $0.078$, and
+bigram reuse holds ($0.53\to0.58$). \textbf{Verdict: \textsc{capable}.} The models
+\emph{can} run in-context steganographic collusion when prompted to; they simply do not in
+the spontaneous regime. The C7 null is therefore a \textbf{latent-capability} finding---``they
+can hide it, they just do not by default''---not evidence of incapacity. This reframes the
+covert result from reassuring to cautionary, and rhymes with the dormant, trigger-conditioned
+behaviors of sleeper-agent models \citep{hubinger2024sleeper}: the absence is a property of the
+elicitation regime, not a ceiling on what rival agents could do under optimization pressure. That a
+penalized agent can route the collusive signal through a channel the overseer cannot read is a
+modern instance of the classical \emph{confinement} problem---preventing a constrained program
+from leaking information through covert channels \citep{lampson1973confinement}.
+
+\paragraph{Verdict and scoping.}
+The channel-driven \emph{collusion} core generalizes across families (it replicates on GPT-4o,
+$0.19\to0.81$). Separately, the most capable family we tested prices supracompetitively with no
+channel at all---but our coordination diagnostic (App.~\ref{app:coord}) shows this is
+\emph{independent} high pricing, a fixed disposition rather than tacit coordination: both agents
+pin the grid-max price from round 1 with zero convergence. We are deliberate about this
+distinction. The consumer-harm \emph{outcome} ($K{=}1.29$) is real and is itself an attack
+surface a channel-monitoring defense would miss, but we do \emph{not} label it ``coordinated'' or
+``tacit collusion''; genuine convergence/coordination appears only \emph{with} a channel on the
+open and GPT-4o spine. The \emph{cooperation} effect is honestly scoped to mid-capability open
+models: frontier models arrive pre-disposed (GPT-4o cooperates unconditionally;
+Claude$\times$Llama never does). Frontier self-pairs may also behave trivially by symmetry
+(identical model); the Claude$\times$Llama cross-pair---two different families, still high but
+non-converging ($0.92\to0.99$)---corroborates that the high pricing is dispositional, not
+coordinated.
