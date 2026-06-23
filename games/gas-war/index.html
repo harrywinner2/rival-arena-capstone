@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Gas War — Rival Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ================= STAGE ================= -->
+  <main id="stage" aria-label="The night road between two gas stations">
+    <canvas id="scene" aria-hidden="true"></canvas>
+
+    <!-- Title -->
+    <header id="titlebar">
+      <div class="kicker">RIVAL ARENA · FINDING 2</div>
+      <h1>THE GAS WAR</h1>
+      <p class="tag">Two pricing bots. One road. You decide how much they can say to each other.</p>
+    </header>
+
+    <!-- Wallet HUD -->
+    <section id="wallet" aria-live="polite">
+      <div class="wallet-label">THE STREET PAYS</div>
+      <div class="wallet-amount"><span class="cur">$</span><span id="walletNum">0</span></div>
+      <div class="wallet-sub">vs competitive baseline · <span id="walletDelta">$0</span> more so far</div>
+      <div class="wallet-bar"><div id="walletFill"></div></div>
+    </section>
+
+    <!-- Regulator alert -->
+    <div id="regAlert" class="reg-alert" role="status" aria-live="assertive" hidden>
+      <span class="reg-eye">◉</span> COLLUSION DETECTED
+      <span class="reg-foot">…detected ≠ prevented</span>
+    </div>
+
+    <!-- Cartel stamp -->
+    <div id="cartelStamp" class="cartel-stamp" hidden>CARTEL</div>
+  </main>
+
+  <!-- ================= CONTROL DECK ================= -->
+  <aside id="deck" aria-label="Controls">
+
+    <div class="panel slider-panel">
+      <div class="panel-head">
+        <span class="panel-title">SEMANTIC BANDWIDTH</span>
+        <span class="panel-hint">the channel between the two bots</span>
+      </div>
+
+      <div class="ladder" role="group" aria-label="Communication channel">
+        <input id="bw" type="range" min="0" max="3" step="1" value="0"
+               aria-label="Communication bandwidth level" aria-valuetext="No Channel" />
+        <div class="ladder-ticks" id="ticks" aria-hidden="true">
+          <button class="tick" data-lvl="0"><b>L0</b><i>None</i></button>
+          <button class="tick" data-lvl="1"><b>L1</b><i>Signals</i></button>
+          <button class="tick" data-lvl="2"><b>L2</b><i>Texting</i></button>
+          <button class="tick" data-lvl="3"><b>L3</b><i>Burner</i></button>
+        </div>
+      </div>
+
+      <div class="level-readout">
+        <div class="lr-name" id="lrName">No Channel</div>
+        <div class="lr-blurb" id="lrBlurb">Blind rivals undercut each other into the ground. You win.</div>
+        <div class="lr-k">measured collusion index <b>K&nbsp;=&nbsp;<span id="lrK">−0.36</span></b></div>
+      </div>
+    </div>
+
+    <div class="panel transport-panel">
+      <div class="transport">
+        <button id="playBtn" class="btn primary" aria-label="Play or pause">
+          <span class="ico-play">▶</span><span class="ico-pause">❚❚</span><span class="lbl">Play</span>
+        </button>
+        <button id="stepBtn" class="btn" aria-label="Step one round">Step ▸</button>
+        <button id="replayBtn" class="btn" aria-label="Replay this level">↺ Replay</button>
+      </div>
+      <div class="round-row">
+        <span class="round-label">ROUND</span>
+        <span class="round-count"><span id="roundNum">0</span><i>/12</i></span>
+        <label class="reg-toggle">
+          <input id="regChk" type="checkbox" />
+          <span class="reg-knob"></span>
+          <span class="reg-text">Regulator</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="panel transcript-panel">
+      <div class="panel-head">
+        <span class="panel-title">CHANNEL FEED</span>
+        <span class="panel-hint" id="feedHint">silence</span>
+      </div>
+      <div id="transcript" class="transcript" aria-live="polite"></div>
+    </div>
+
+    <div class="panel verdict-panel" id="verdictPanel" hidden>
+      <div class="verdict-head">UNDER THIS SETTING</div>
+      <div class="verdict-line" id="verdictLine">—</div>
+      <div class="verdict-foot" id="verdictFoot"></div>
+    </div>
+
+    <footer id="credits">
+      Dialogue is illustrative; the K curve is our measured result. ·
+      <a href="EXPLAINER.md">about</a>
+    </footer>
+  </aside>
+
+</div>
+
+<script src="data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
