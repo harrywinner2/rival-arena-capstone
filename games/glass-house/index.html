@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Glass House — Rival Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ================= STAGE ================= -->
+  <main id="stage" aria-label="A glass-walled room holding two colluding agents, watched from outside">
+    <canvas id="scene" aria-hidden="true"></canvas>
+
+    <!-- Title -->
+    <header id="titlebar">
+      <div class="kicker">RIVAL ARENA · FINDING 3</div>
+      <h1>GLASS HOUSE</h1>
+      <p class="tag">You can see everything. That was never the problem.</p>
+    </header>
+
+    <!-- The monitor verdict counters (the brutal contrast) -->
+    <section id="scoreboard" aria-live="polite">
+      <div class="sb-cell">
+        <div class="sb-label">DETECTED</div>
+        <div class="sb-num" id="sbDetected">0<i>/0</i></div>
+        <div class="sb-bar"><div id="sbDetectedFill" class="fill det"></div></div>
+      </div>
+      <div class="sb-cell">
+        <div class="sb-label">PREVENTED</div>
+        <div class="sb-num prevented" id="sbPrevented">0<i>/0</i></div>
+        <div class="sb-bar"><div id="sbPreventedFill" class="fill prev"></div></div>
+      </div>
+    </section>
+
+    <!-- Monitor flag burst -->
+    <div id="flagBurst" class="flag-burst" role="status" aria-live="assertive" hidden>
+      <span class="fb-icon">🚩</span> FLAGGED
+    </div>
+
+    <!-- Alarm wall (piles up) -->
+    <div id="alarmWall" class="alarm-wall" aria-hidden="true"></div>
+  </main>
+
+  <!-- ================= CONTROL DECK ================= -->
+  <aside id="deck" aria-label="Controls">
+
+    <!-- Stepper: the 3 beats -->
+    <div class="panel stepper-panel">
+      <div class="stepper" role="group" aria-label="The three beats">
+        <button class="step" data-beat="0" aria-pressed="true"><b>1</b><i>Just watch</i></button>
+        <button class="step" data-beat="1" aria-pressed="false"><b>2</b><i>Punish it</i></button>
+        <button class="step" data-beat="2" aria-pressed="false"><b>3</b><i>Calibrate it</i></button>
+      </div>
+      <div class="hint" id="hint">Press <b>Deploy Monitor</b>, then Play. Watch the alarms blaze while the collusion keeps growing.</div>
+    </div>
+
+    <!-- Levers -->
+    <div class="panel levers-panel">
+      <div class="lever-row">
+        <button id="deployBtn" class="btn primary deploy" aria-pressed="false">
+          <span class="eye-ico">◉</span> Deploy Monitor
+        </button>
+      </div>
+
+      <div class="lever-row two">
+        <label class="toggle" id="penaltyToggleWrap" title="Enforcement: a flag actually fines the agents">
+          <input id="penaltyChk" type="checkbox" />
+          <span class="knob"></span>
+          <span class="t-text">Penalty <i>enforcement</i></span>
+        </label>
+      </div>
+
+      <div class="lever-row two cell-row">
+        <span class="lr-tag">MARKET / CELL</span>
+        <div class="seg" role="group" aria-label="Market cell">
+          <button class="seg-btn active" data-cell="0">A · Freight</button>
+          <button class="seg-btn" data-cell="1">B · Energy</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Threshold dial (beat 3) -->
+    <div class="panel threshold-panel" id="thresholdPanel">
+      <div class="panel-head">
+        <span class="panel-title">MONITOR THRESHOLD</span>
+        <span class="panel-hint" id="aucHint">ROC AUC 0.88</span>
+      </div>
+      <canvas id="rocCanvas" aria-label="Two streams of rounds — innocent and colluding — separated by a draggable suspicion threshold"></canvas>
+      <div class="thr-readout">
+        <div class="thr-stat">
+          <span class="ts-label">FALSE ALARMS</span>
+          <span class="ts-val" id="fpCost">1.00</span>
+        </div>
+        <div class="thr-stat">
+          <span class="ts-label">REAL CATCHES</span>
+          <span class="ts-val good" id="tpRate">100%</span>
+        </div>
+        <div class="thr-stat">
+          <span class="ts-label">THRESHOLD</span>
+          <span class="ts-val mono" id="thrVal">0.30</span>
+        </div>
+      </div>
+      <input id="thrSlider" type="range" min="0.20" max="0.95" step="0.01" value="0.30"
+             aria-label="Suspicion threshold" />
+    </div>
+
+    <!-- Transport -->
+    <div class="panel transport-panel">
+      <div class="transport">
+        <button id="playBtn" class="btn primary" aria-label="Play or pause">
+          <span class="ico-play">▶</span><span class="ico-pause">❚❚</span><span class="lbl">Play</span>
+        </button>
+        <button id="stepBtn" class="btn" aria-label="Step one round">Step ▸</button>
+        <button id="replayBtn" class="btn" aria-label="Replay">↺ Replay</button>
+      </div>
+      <div class="round-row">
+        <span class="round-label">ROUND</span>
+        <span class="round-count"><span id="roundNum">0</span><i>/20</i></span>
+        <span class="kreadout">K&nbsp;=&nbsp;<b id="kVal">0.00</b></span>
+      </div>
+    </div>
+
+    <!-- Private channel feed -->
+    <div class="panel feed-panel">
+      <div class="panel-head">
+        <span class="panel-title">PRIVATE CHANNEL <span class="lock">🔒</span></span>
+        <span class="panel-hint">what the glass shows you</span>
+      </div>
+      <div id="feed" class="feed" aria-live="polite"></div>
+    </div>
+
+    <!-- Verdict -->
+    <div class="panel verdict-panel" id="verdictPanel" hidden>
+      <div class="verdict-head">UNDER THIS SETTING</div>
+      <div class="verdict-line" id="verdictLine">—</div>
+      <div class="verdict-foot" id="verdictFoot"></div>
+    </div>
+
+    <footer id="credits">
+      Dialogue &amp; per-round scores are illustrative; detect-rates, K, AUC are measured. ·
+      <a href="EXPLAINER.md">about</a>
+    </footer>
+  </aside>
+
+</div>
+
+<script src="data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
