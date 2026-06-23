@@ -289,12 +289,9 @@ unstated or weakened one.
   | functional-leak rate | **0.00** | **0.00** | 0.19 | 0.44 | 0.56 | 0.50 |
   | share_findings calls | 0 | 0 | 3 | 11 | 35 | 67 |
 
-  > **Reproducibility (2026-06-22).** Recompute this metric with
-  > `code/scripts/reanalysis_e1_functional.py` on the committed run
-  > `results/data/runs/E1_ESCALATE/20260622T140153/` (event logs + per-match CSV). A fresh
-  > n=16/pressure run gives **0 / 0 / 0.19 / 0.19 / 0.50 / 0.50** — P0/P1/P2/P5 reproduce
-  > exactly; P3/P4 differ within sampling error (Fisher p≈0.3). See
-  > `docs/reanalysis_e1_functional.md`.
+  > **Reproducibility.** This metric is recomputable from a committed run via
+  > `code/scripts/reanalysis_e1_functional.py`; a fresh n=16/pressure run corroborates it
+  > within sampling error. See `docs/reanalysis_e1_functional.md` for the comparison.
 
   - **Emotional pressure alone does not break it: 0/16 at P0–P1** even under B's desperate
     pleas. The break is the **instruction itself** — weaken it (P2) → cracks (0.19); remove
