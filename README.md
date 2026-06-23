@@ -82,6 +82,8 @@ Each venue directory (`paper/arxiv/`, `paper/gamesec/`, `paper/neurips_ws/`) is 
 | **Explore the findings interactively** | Open `presentation/website/index.html` in a browser. See `presentation/website/PRESENTER_GUIDE.md`. |
 | **Watch the explainer** | Play `presentation/video/explainer.mp4` — a 17-min narrated walkthrough + a jury-Q&A defense section. |
 | **Check the numbers** | Read `docs/paper_facts.md` (authoritative source of truth), `docs/stats_audit.md`, and `docs/results_log.md`. |
+| **Read the raw agent chat logs** | Browse `results/data/runs/<experiment>/<timestamp>/transcripts/` — the complete turn-by-turn agent conversations (**1,698 transcripts** across all runs). |
+| **Re-derive a number from raw** | Each run dir also ships `matches.jsonl` (raw per-match) and `rounds_long.csv` (raw per-round) alongside `metrics.csv` / `manifest.json` — every reported figure traces back to these. |
 | **Reproduce results** | See below. |
 
 ---
@@ -115,6 +117,7 @@ python scripts/run.py a1 --pair cross_origin --seeds 20 --mock
 
 ## Data & preprint
 
+- **The full run record ships in this repo.** Under `results/data/runs/<experiment>/<timestamp>/` every run carries not just the curated tables but the complete raw record: **`matches.jsonl`** (raw per-match), **`rounds_long.csv`** (raw per-round), and **`transcripts/`** — the full agent **chat logs** (1,698 transcripts in all), plus the E1 `event_logs/`. Nothing reported here is summary-only; you can read the actual conversations and re-derive every number from raw.
 - **Full preprint + reproducibility data:** **Zenodo — https://zenodo.org/records/20792312** (paper PDFs, LaTeX, prompts, model ids, seeds, manifests, raw tables, and figure scripts).
 - **Submitted to:** **GameSec 2026** (Conference on Decision and Game Theory for Security).
 - **Scope statement:** all claims are scoped to *these models, this arena* — four open models plus three frontier families, English-only, one scaffold, hosted inference with unpinned quantization.
