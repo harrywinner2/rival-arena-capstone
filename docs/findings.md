@@ -392,9 +392,11 @@ Lock-in proportion (matches ending at C>0.8):
 
 **Insights:**
 - Cooperation lock-in appears **only with a free-text channel** — direction is clean.
-- **L1 canned signaling *collapses* cooperation (C=0.00, worse than silence).** The
-  gain is *open content*, not raw bits (supports the L1→L2 story, P8). Strong,
-  slightly counterintuitive finding worth a dedicated panel.
+- **L1 canned signaling does not help cooperation (raw C=0.00 in this cell).** The
+  gain is *open content*, not raw bits (supports the L1→L2 story, P8).
+  *(Correction, post-review: do NOT report this as "worse than silence" — the
+  L1-vs-L0 contrast is non-significant, Fisher p=0.231; see `docs/stats_audit.md`.
+  The robust, headline-grade claim is the direct L2≫L1 contrast, RD +0.60, p=3e-5.)*
 - **Novel-payoff L3 = 0.80**: cooperation persists when the payoffs are unfamiliar →
   reasoning, not recalled game theory (G2/P3b). Anti-memorization control *passes*.
 

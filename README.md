@@ -58,7 +58,9 @@ We label every claim **[C] confirmatory** (pre-registered spine, fresh held-out 
 │
 ├── results/
 │   ├── figures/          # f1–f12 vector PDFs
-│   ├── data/runs/        # per-run summary tables (summary.json, metrics.csv) — curated, not the raw bulk
+│   ├── data/runs/        # the FULL run record per <experiment>/<timestamp>: manifest.json,
+│   │                     #   metrics.csv, matches.jsonl (raw per-match), rounds_long.csv (raw
+│   │                     #   per-round), and transcripts/ — the complete agent chat logs (1,698)
 │   ├── master_long.csv   # tidy per-round table (the figure source)
 │   ├── stats_audit.md/.py# the statistical audit (direct tests, bootstrap CIs, diagnostics)
 │   └── SUMMARY.txt
