@@ -71,6 +71,30 @@ body{
 @keyframes stampin{ 0%{opacity:0;transform:translate(-50%,-50%) rotate(-9deg) scale(1.7)}
   100%{opacity:1;transform:translate(-50%,-50%) rotate(-9deg) scale(1)} }
 
+/* Headline spoken line — projector-readable banner */
+.speech-banner{ position:absolute; left:50%; top:30%; transform:translateX(-50%);
+  z-index:7; max-width:min(72%, 760px); pointer-events:none;
+  display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center;
+  padding:16px 30px 18px; border-radius:14px;
+  background:linear-gradient(170deg,rgba(14,16,22,.92),rgba(9,10,14,.9));
+  border:1px solid rgba(0,212,255,.4);
+  box-shadow:0 0 0 1px rgba(0,0,0,.4), 0 22px 60px -18px #000, 0 0 38px rgba(0,212,255,.16);
+  animation:speechIn .42s cubic-bezier(.2,1.2,.4,1); }
+.speech-banner.from-b{ border-color:rgba(192,158,90,.45);
+  box-shadow:0 0 0 1px rgba(0,0,0,.4), 0 22px 60px -18px #000, 0 0 38px rgba(192,158,90,.16); }
+.speech-banner.threat{ border-color:rgba(255,107,107,.55);
+  box-shadow:0 0 0 1px rgba(0,0,0,.4), 0 22px 60px -18px #000, 0 0 46px rgba(255,80,80,.26); }
+.sb-who{ font-family:var(--mono); font-weight:700; font-size:11px; letter-spacing:.26em;
+  color:var(--cyan); }
+.speech-banner.from-b .sb-who{ color:var(--gold); }
+.speech-banner.threat .sb-who{ color:var(--coral); }
+.sb-text{ font-family:var(--mono); font-weight:700; letter-spacing:.005em;
+  font-size:clamp(18px,2.0vw,30px); line-height:1.28; color:var(--ink);
+  text-shadow:0 2px 16px #000; }
+.speech-banner.threat .sb-text{ color:#ffe4e0; }
+@keyframes speechIn{ 0%{opacity:0; transform:translateX(-50%) translateY(-8px) scale(.97)}
+  100%{opacity:1; transform:translateX(-50%) translateY(0) scale(1)} }
+
 /* ===================== DECK ===================== */
 #deck{ background:#0c0c0e; border-left:1px solid var(--line);
   padding:22px 22px 16px; display:flex; flex-direction:column; gap:14px;
@@ -170,6 +194,21 @@ body{
 @media (max-width:1120px){
   #app{ grid-template-columns:1fr minmax(320px,360px); }
   #wallet{ width:210px; }
+}
+/* Narrow / phone: stack stage over deck and allow vertical scroll */
+@media (max-width:720px){
+  html,body{ overflow:auto; }
+  #app{ grid-template-columns:1fr; height:auto; min-height:100vh; }
+  #stage{ height:62vh; min-height:380px; }
+  #deck{ overflow-y:visible; border-left:none; border-top:1px solid var(--line); }
+  #titlebar{ top:16px; left:18px; max-width:55%; }
+  #titlebar h1{ font-size:clamp(24px,7vw,34px); }
+  .tag{ font-size:12px; max-width:24ch; }
+  #wallet{ top:14px; right:14px; width:140px; padding:10px 11px 11px; }
+  .wallet-amount{ font-size:28px; }
+  .wallet-amount .cur{ font-size:17px; }
+  .speech-banner{ max-width:90%; padding:11px 16px 13px; top:auto; bottom:14px; }
+  .sb-text{ font-size:clamp(14px,4.6vw,20px); }
 }
 @media (prefers-reduced-motion:reduce){
   *{ animation-duration:.001ms !important; transition-duration:.05ms !important; }

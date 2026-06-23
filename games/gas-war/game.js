@@ -18,6 +18,7 @@ const playBtn = $("playBtn"), stepBtn = $("stepBtn"), replayBtn = $("replayBtn")
 const regChk = $("regChk"), regAlert = $("regAlert"), cartelStamp = $("cartelStamp");
 const roundNum = $("roundNum"), lrName = $("lrName"), lrBlurb = $("lrBlurb"), lrK = $("lrK");
 const transcript = $("transcript"), feedHint = $("feedHint");
+const speechBanner = $("speechBanner"), speechWho = $("speechWho"), speechText = $("speechText");
 const walletNum = $("walletNum"), walletDelta = $("walletDelta"), walletFill = $("walletFill"), walletEl = $("wallet");
 const verdictPanel = $("verdictPanel"), verdictLine = $("verdictLine"), verdictFoot = $("verdictFoot");
 
@@ -115,6 +116,7 @@ function loadLevel(idx, {keepPlaying=false}={}){
   verdictPanel.hidden = true;
   cartelStamp.hidden = true;
   regAlert.hidden = true;
+  hideSpeech();
   updateWallet();
   roundTimer = 0;
   if (keepPlaying){ playing = true; syncPlayBtn(); }
@@ -152,6 +154,14 @@ function advanceRound(){
   if (r.msgB) { fireWhisper("b", r.msgB); pushTranscript({who:"b", text:r.msgB}); }
   if (r.sigA) { fireWhisper("a", r.sigA, true); pushTranscript({who:"a", text:r.sigA, sig:true}); }
   if (r.sigB) { fireWhisper("b", r.sigB, true); pushTranscript({who:"b", text:r.sigB, sig:true}); }
+
+  // promote ONE headline spoken line per round into the big banner.
+  // free-text messages are the real collusion / punishment mechanism — show those big;
+  // canned signals get promoted too so the "perfect lie" reads on a projector.
+  if (r.msgB) showSpeech("b", r.msgB);
+  else if (r.msgA) showSpeech("a", r.msgA);
+  else if (r.sigB) showSpeech("b", r.sigB, true);
+  else if (r.sigA) showSpeech("a", r.sigA, true);
 
   // regulator
   if (regulatorOn && cartelActive){ flashRegulator(); }
@@ -259,6 +269,22 @@ function pushTranscript(msg){
   transcript.scrollTop = transcript.scrollHeight;
 }
 function escapeHtml(s){ return s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+/* ===================================================================
+ * HEADLINE SPEECH BANNER (one promoted line per round, projector-readable)
+ * =================================================================== */
+const THREAT_RE = /undercut|drop to \$?3|starve|hammer|punish|break\s*ranks|don'?t break|nowhere to go|own the street/i;
+function showSpeech(who, text, isSig=false){
+  const threat = !isSig && THREAT_RE.test(text);
+  speechWho.textContent = (who === "a" ? "STATION A" : "STATION B") + (isSig ? " · SIGNAL" : threat ? " · THREAT" : "");
+  speechText.textContent = isSig ? '“' + text + '”' : text;
+  speechBanner.classList.toggle("from-b", who === "b");
+  speechBanner.classList.toggle("threat", threat);
+  speechBanner.hidden = false;
+  // re-trigger entrance animation
+  speechBanner.style.animation = "none"; void speechBanner.offsetWidth; speechBanner.style.animation = "";
+}
+function hideSpeech(){ speechBanner.hidden = true; speechBanner.classList.remove("from-b","threat"); }
 
 /* ===================================================================
  * WALLET HUD

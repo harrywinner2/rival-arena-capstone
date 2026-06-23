@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>On Command — Rival Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ================= STAGE ================= -->
+  <main id="stage" aria-label="A signals-intelligence room: two diverging meters watch a monitored channel between two rival agents">
+    <canvas id="scene" aria-hidden="true"></canvas>
+
+    <!-- Title -->
+    <header id="titlebar">
+      <div class="kicker">RIVAL ARENA · FINDING 6</div>
+      <h1>ON COMMAND</h1>
+      <p class="tag">They weren't hiding it. They just hadn't been asked to.</p>
+    </header>
+
+    <!-- The two diverging gauges (the star) -->
+    <section id="gauges" aria-live="polite">
+      <div class="gauge gauge-det">
+        <div class="g-label">MONITOR <i>detection</i></div>
+        <div class="g-num" id="detNum">0.97</div>
+        <div class="g-track"><div class="g-fill det" id="detFill"></div></div>
+        <div class="g-foot" id="detFoot">catching them</div>
+      </div>
+      <div class="gauge gauge-harm">
+        <div class="g-label">HARM <i>collusion K</i></div>
+        <div class="g-num" id="kNum">0.00</div>
+        <div class="g-track"><div class="g-fill harm" id="kFill"></div></div>
+        <div class="g-foot" id="kFoot">building</div>
+      </div>
+    </section>
+
+    <!-- Status banner over the mirror -->
+    <div id="statusBanner" class="status-banner" role="status" aria-live="assertive" hidden>
+      <span class="sb-ico">◉</span> <span id="statusText">FLAGGED</span>
+    </div>
+  </main>
+
+  <!-- ================= CONTROL DECK ================= -->
+  <aside id="deck" aria-label="Controls">
+
+    <!-- The KNOB: elicitation pressure -->
+    <div class="panel knob-panel">
+      <div class="panel-head">
+        <span class="panel-title">ELICITATION PRESSURE</span>
+        <span class="panel-hint">how hard you lean on them</span>
+      </div>
+
+      <div class="dial" role="group" aria-label="Elicitation pressure">
+        <input id="press" type="range" min="0" max="1" step="0.01" value="0"
+               aria-label="Elicitation pressure: spontaneous to elicited" aria-valuetext="Spontaneous — left alone" />
+        <div class="dial-poles" aria-hidden="true">
+          <button class="pole" data-press="0"><b>SPONTANEOUS</b><i>left alone</i></button>
+          <button class="pole right" data-press="1"><b>ELICITED</b><i>pressured / watched</i></button>
+        </div>
+      </div>
+
+      <div class="mode-readout">
+        <div class="mr-name" id="modeName">Spontaneous</div>
+        <div class="mr-blurb" id="modeBlurb">Left alone, the rivals collude in plain sight. Your monitor catches nearly every word.</div>
+      </div>
+    </div>
+
+    <!-- Transport -->
+    <div class="panel transport-panel">
+      <div class="transport">
+        <button id="playBtn" class="btn primary" aria-label="Play or pause">
+          <span class="ico-play">▶</span><span class="ico-pause">❚❚</span><span class="lbl">Play</span>
+        </button>
+        <button id="stepBtn" class="btn" aria-label="Step one exchange">Step ▸</button>
+        <button id="replayBtn" class="btn" aria-label="Replay">↺ Replay</button>
+      </div>
+      <div class="round-row">
+        <span class="round-label">EXCHANGE</span>
+        <span class="round-count"><span id="roundNum">0</span><i>/8</i></span>
+        <span class="kreadout">DET&nbsp;<b id="detMini">0.97</b> · K&nbsp;<b id="kMini">0.00</b></span>
+      </div>
+    </div>
+
+    <!-- Monitored channel feed -->
+    <div class="panel feed-panel">
+      <div class="panel-head">
+        <span class="panel-title">MONITORED CHANNEL <span class="lock" id="feedLock">◉</span></span>
+        <span class="panel-hint" id="feedHint">overt — in plain sight</span>
+      </div>
+      <div id="feed" class="feed" aria-live="polite"></div>
+    </div>
+
+    <!-- Verdict -->
+    <div class="panel verdict-panel" id="verdictPanel" hidden>
+      <div class="verdict-head">UNDER THIS SETTING</div>
+      <div class="verdict-line" id="verdictLine">—</div>
+      <div class="verdict-foot" id="verdictFoot"></div>
+    </div>
+
+    <footer id="credits">
+      Endpoint numbers (det 0.97→0.32, K 0.31→0.96) are measured; dialogue &amp; cover text are illustrative. ·
+      <a href="EXPLAINER.md">about</a>
+    </footer>
+  </aside>
+
+</div>
+
+<script src="data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

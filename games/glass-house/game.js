@@ -12,6 +12,7 @@
 
   const els = {
     sbDetected: $("#sbDetected"), sbPrevented: $("#sbPrevented"),
+    sbDetectedPct: $("#sbDetectedPct"), sbPreventedPct: $("#sbPreventedPct"),
     sbDetFill: $("#sbDetectedFill"), sbPrevFill: $("#sbPreventedFill"),
     flagBurst: $("#flagBurst"), alarmWall: $("#alarmWall"),
     deployBtn: $("#deployBtn"), penaltyChk: $("#penaltyChk"),
@@ -391,12 +392,14 @@
   }
 
   function syncScoreboard() {
-    els.sbDetected.innerHTML = S.detected + "<i>/" + S.colludingSoFar + "</i>";
-    els.sbPrevented.innerHTML = "0<i>/" + S.colludingSoFar + "</i>";
     const detFrac = S.colludingSoFar ? S.detected / S.colludingSoFar : 0;
+    els.sbDetectedPct.innerHTML = Math.round(detFrac * 100) + '<span class="sb-unit">%</span>';
+    els.sbPreventedPct.innerHTML = '0<span class="sb-unit">%</span>';
+    els.sbDetected.textContent = S.detected + "/" + S.colludingSoFar;
+    els.sbPrevented.textContent = "0/" + S.colludingSoFar;
     els.sbDetFill.style.width = (detFrac * 100) + "%";
     els.sbPrevFill.style.width = "0%";
-    els.sbDetected.classList.toggle("flash", S.flashT > 0.4 && !S.lastFlagWasFP);
+    els.sbDetectedPct.classList.toggle("flash", S.flashT > 0.4 && !S.lastFlagWasFP);
   }
 
   function showVerdict() {

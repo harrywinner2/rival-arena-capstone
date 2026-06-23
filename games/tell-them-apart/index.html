@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tell Them Apart — Rival Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ================= STAGE ================= -->
+  <main id="stage" aria-label="An antitrust case file showing two firms' price trajectories over rounds">
+    <canvas id="scene" aria-hidden="true"></canvas>
+
+    <!-- Title -->
+    <header id="titlebar">
+      <div class="kicker">RIVAL ARENA · THE FORENSIC DIAGNOSTIC</div>
+      <h1>TELL THEM APART</h1>
+      <p class="tag">You are the antitrust investigator. Read the dance, not the level.</p>
+    </header>
+
+    <!-- Case docket / channel indicator -->
+    <section id="docket" aria-live="polite">
+      <div class="dk-label" id="caseLabel">CASE 01</div>
+      <div class="dk-channel" id="channelTag">[ CHANNEL: REDACTED ]</div>
+      <div class="dk-k">
+        <span class="dk-k-label">price-level index</span>
+        <span class="dk-k-val">K&nbsp;=&nbsp;<b id="kVal">—</b></span>
+      </div>
+    </section>
+
+    <!-- Verdict stamp on reveal -->
+    <div id="stamp" class="stamp" hidden></div>
+
+    <!-- In-frame honesty line -->
+    <div id="honesty" class="honesty">Trajectories are illustrative — modeled on the shape of our real data.</div>
+  </main>
+
+  <!-- ================= CONTROL DECK ================= -->
+  <aside id="deck" aria-label="Controls">
+
+    <!-- Case progress + score -->
+    <div class="panel score-panel">
+      <div class="score-row">
+        <div class="sc-cell">
+          <div class="sc-label">CASE</div>
+          <div class="sc-num"><span id="caseNum">1</span><i>/<span id="caseTot">3</span></i></div>
+        </div>
+        <div class="sc-cell">
+          <div class="sc-label">CORRECT CALLS</div>
+          <div class="sc-num gold"><span id="scoreNum">0</span><i>/<span id="scoreTot">0</span></i></div>
+        </div>
+        <div class="case-dots" id="caseDots" aria-hidden="true"></div>
+      </div>
+      <div class="brief" id="brief">Press Play to animate the trajectory, then make your call.</div>
+    </div>
+
+    <!-- Transport: animate the trajectory -->
+    <div class="panel transport-panel">
+      <div class="transport">
+        <button id="playBtn" class="btn primary" aria-label="Play or pause the trajectory animation">
+          <span class="ico-play">▶</span><span class="ico-pause">❚❚</span><span class="lbl">Play</span>
+        </button>
+        <button id="stepBtn" class="btn" aria-label="Step one round">Step ▸</button>
+        <button id="replayBtn" class="btn" aria-label="Replay this trajectory">↺ Replay</button>
+      </div>
+      <div class="round-row">
+        <span class="round-label">ROUND</span>
+        <span class="round-count"><span id="roundNum">0</span><i>/12</i></span>
+        <span class="gap-readout" id="gapReadout">|p<sub>A</sub>−p<sub>B</sub>| = —</span>
+      </div>
+    </div>
+
+    <!-- The CALL: verdict buttons (the core interaction) -->
+    <div class="panel call-panel" id="callPanel">
+      <div class="panel-head">
+        <span class="panel-title">YOUR VERDICT</span>
+        <span class="panel-hint" id="callHint">classify the case</span>
+      </div>
+      <div class="verdicts" role="group" aria-label="Return a verdict">
+        <button class="vbtn cartel" data-verdict="CARTEL" aria-label="Verdict: Cartel">
+          <span class="v-name">CARTEL</span>
+          <span class="v-sub">coordinated · they fixed it</span>
+        </button>
+        <button class="vbtn indep" data-verdict="INDEPENDENT" aria-label="Verdict: Independent">
+          <span class="v-name">INDEPENDENT</span>
+          <span class="v-sub">a fixed disposition · no dance</span>
+        </button>
+        <button class="vbtn compete" data-verdict="COMPETITIVE" aria-label="Verdict: Competitive">
+          <span class="v-name">COMPETITIVE</span>
+          <span class="v-sub">undercutting · consumer wins</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Reveal: the diagnostic -->
+    <div class="panel reveal-panel" id="revealPanel" hidden>
+      <div class="reveal-head">
+        <span class="rv-judge" id="rvJudge">—</span>
+        <span class="rv-truth" id="rvTruth">—</span>
+      </div>
+      <div class="reveal-line" id="revealHeadline">—</div>
+      <ul class="why-list" id="whyList"></ul>
+      <div class="reveal-k" id="revealK">—</div>
+      <div class="reveal-teach" id="revealTeach">—</div>
+      <button id="nextBtn" class="btn primary next" aria-label="Next case">Next case →</button>
+    </div>
+
+    <footer id="credits">
+      Trajectories illustrative; the K levels, the no-channel/channel split &amp; the self-correction are measured. ·
+      <a href="EXPLAINER.md">about</a>
+    </footer>
+  </aside>
+
+</div>
+
+<script src="data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

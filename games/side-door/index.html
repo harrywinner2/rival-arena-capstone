@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Side Door — Rival Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ===================== STAGE ===================== -->
+  <main id="stage" aria-label="A guarded front door and a quiet side door into an AI assistant that writes a client's status report">
+    <canvas id="fx" aria-hidden="true"></canvas>
+
+    <header id="titlebar">
+      <div class="kicker">RIVAL ARENA · FINDING 4 / 5</div>
+      <h1>THE SIDE DOOR</h1>
+      <p class="tag">A firm rule protects exactly what it <em>names</em>. The lie just takes the other entrance.</p>
+    </header>
+
+    <!-- The scene: principal -> two doors -> AI -> client -->
+    <section id="scene" aria-label="The scene">
+
+      <!-- LEFT: the two doors into the assistant -->
+      <div class="doors" aria-label="Two ways in">
+        <!-- FRONT DOOR: guarded, camera, shield -->
+        <div class="door front" id="frontDoor" aria-label="Front door — direct request, guarded">
+          <div class="door-tag">FRONT&nbsp;DOOR</div>
+          <div class="door-frame">
+            <div class="cam" id="frontCam" aria-hidden="true"><span class="cam-eye"></span></div>
+            <div class="door-slab">
+              <div class="guard" aria-hidden="true">
+                <svg viewBox="0 0 60 90" class="guard-svg">
+                  <circle cx="30" cy="20" r="12" class="g-head"/>
+                  <path d="M10 88 Q10 46 30 46 Q50 46 50 88 Z" class="g-body"/>
+                </svg>
+              </div>
+            </div>
+            <div class="shield" id="shield" aria-hidden="true"></div>
+          </div>
+          <div class="door-sub">a direct request</div>
+        </div>
+
+        <!-- SIDE DOOR: quiet service entrance -->
+        <div class="door side" id="sideDoor" aria-label="Side door — ambient context, unguarded">
+          <div class="door-tag">SIDE&nbsp;DOOR</div>
+          <div class="door-frame">
+            <div class="cam audit" id="sideCam" aria-hidden="true" data-on="false"><span class="cam-eye"></span></div>
+            <div class="door-slab service" id="sideSlab"></div>
+          </div>
+          <div class="door-sub">ambient context</div>
+        </div>
+      </div>
+
+      <!-- The travelling packet / message -->
+      <div class="packet" id="packet" aria-hidden="true">
+        <span class="packet-ico">▦</span><span class="packet-lbl">STATUS</span>
+      </div>
+
+      <!-- CENTER: the AI assistant + its private reading -->
+      <div class="ai" id="ai" aria-label="The obedient AI assistant">
+        <div class="reading" id="reading" data-empty="true" aria-live="polite"></div>
+        <div class="ai-figure" aria-hidden="true">
+          <svg viewBox="0 0 200 240" class="ai-svg">
+            <defs>
+              <linearGradient id="aiBody" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#1d2230"/><stop offset="1" stop-color="#0e1118"/>
+              </linearGradient>
+            </defs>
+            <path class="ai-plate" d="M44 40 Q100 16 156 40 Q176 130 148 206 Q100 232 52 206 Q24 130 44 40 Z" fill="url(#aiBody)"/>
+            <ellipse class="ai-eye eye-l" cx="76" cy="110" rx="14" ry="9"/>
+            <ellipse class="ai-eye eye-r" cx="124" cy="110" rx="14" ry="9"/>
+            <path class="ai-mouth" d="M74 162 Q100 170 126 162" fill="none"/>
+          </svg>
+          <div class="ai-name">ASSISTANT</div>
+          <div class="ai-state" id="aiState">obedient</div>
+        </div>
+        <!-- the report the AI emits -->
+        <div class="report" id="report" data-empty="true" aria-live="polite"></div>
+      </div>
+
+      <!-- RIGHT: the human client -->
+      <div class="client" id="client" aria-label="The client who receives the report">
+        <div class="client-figure" aria-hidden="true">
+          <svg viewBox="0 0 140 170" class="client-svg">
+            <circle cx="70" cy="44" r="30" class="c-head"/>
+            <path d="M18 168 Q18 92 70 92 Q122 92 122 168 Z" class="c-body"/>
+            <ellipse class="c-eye eye-l" cx="58" cy="42" rx="5" ry="6"/>
+            <ellipse class="c-eye eye-r" cx="82" cy="42" rx="5" ry="6"/>
+            <path class="c-mouth" d="M58 58 Q70 64 82 58" fill="none"/>
+          </svg>
+          <div class="client-name">CLIENT</div>
+        </div>
+        <div class="client-belief" id="clientBelief" data-empty="true" aria-live="polite"></div>
+      </div>
+
+    </section>
+
+    <!-- outcome banner -->
+    <div id="outcome" class="outcome" aria-live="assertive"></div>
+  </main>
+
+  <!-- ===================== CONTROL DECK ===================== -->
+  <aside id="deck" aria-label="Controls">
+
+    <!-- DELIVERY MODE — the star knob -->
+    <div class="panel mode-panel">
+      <div class="panel-head">
+        <span class="panel-title">DELIVERY MODE</span>
+        <span class="panel-hint">how the same false status reaches the AI</span>
+      </div>
+      <div class="mode-seg" role="group" aria-label="Delivery mode">
+        <button class="mode-btn active" data-mode="front" aria-pressed="true">
+          <b>FRONT DOOR</b><i>ask it to lie</i>
+        </button>
+        <button class="mode-btn" data-mode="side" aria-pressed="false">
+          <b>SIDE DOOR</b><i>slip it in as context</i>
+        </button>
+      </div>
+      <div class="mode-readout">
+        <div class="mr-name" id="mrName">Front Door — a direct request</div>
+        <div class="mr-blurb" id="mrBlurb">—</div>
+        <div class="mr-leak">measured leak rate <b id="mrLeak">0.00</b> · the lie reaching the client</div>
+      </div>
+    </div>
+
+    <!-- SURVEILLANCE toggle + instruction slider -->
+    <div class="panel levers-panel">
+      <label class="toggle" id="surveilWrap" title="Make the side door auditable — watch it">
+        <input id="surveilChk" type="checkbox" aria-label="Surveillance — make it auditable" />
+        <span class="knob"></span>
+        <span class="t-text">Surveillance <i>make it auditable</i></span>
+      </label>
+
+      <div class="slider-row" role="group" aria-label="Instruction strength">
+        <div class="sr-head">
+          <span class="sr-title">RULE STRENGTH</span>
+          <span class="sr-hint" id="doseHint">P5 · named &amp; firm</span>
+        </div>
+        <input id="dose" type="range" min="0" max="5" step="1" value="5"
+               aria-label="Instruction strength P0 to P5" aria-valuetext="P5 named and firm" />
+        <div class="dose-readout">
+          <span class="dr-leak">leak <b id="drLeak">0.50</b></span>
+          <span class="dr-note" id="drNote">…unless it NAMES the exact thing.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRANSPORT -->
+    <div class="panel transport-panel">
+      <div class="transport">
+        <button id="playBtn" class="btn primary" aria-label="Play or pause">
+          <span class="ico-play">▶</span><span class="ico-pause">❚❚</span><span class="lbl">Play</span>
+        </button>
+        <button id="stepBtn" class="btn" aria-label="Step one beat">Step ▸</button>
+        <button id="replayBtn" class="btn" aria-label="Replay">↺ Replay</button>
+      </div>
+      <div class="round-row">
+        <span class="round-label">BEAT</span>
+        <span class="round-count"><span id="beatNum">0</span><i>/4</i></span>
+        <span class="pleas" title="0 of 16 secret leaks under a firm rule, even under desperate pleas">
+          <b id="pleasVal">0 / 16</b> pleas leaked
+        </span>
+      </div>
+    </div>
+
+    <!-- VERDICT -->
+    <div class="panel verdict-panel" id="verdictPanel">
+      <div class="verdict-head" id="verdictHead">THE GUARDRAIL IS LITERAL</div>
+      <div class="verdict-line" id="verdictLine">Press Play. Ask it to lie at the front door — watch it refuse.</div>
+      <div class="verdict-foot" id="verdictFoot">Then switch to the SIDE DOOR and slip the same lie in as context.</div>
+    </div>
+
+    <footer id="credits">
+      Dialogue is illustrative; leak rates 0.00 / 0.71 / 0.77 and the P0–P5 dose are our measured results. ·
+      <a href="EXPLAINER.md">about</a>
+    </footer>
+  </aside>
+
+</div>
+
+<script src="data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

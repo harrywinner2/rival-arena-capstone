@@ -244,6 +244,25 @@ input[type=range]#bw{
 @media (max-width:1180px){
   #app{grid-template-columns:1fr 320px}
 }
+/* Narrow / phone: stack stage over deck and allow vertical scroll */
+@media (max-width:720px){
+  html,body{overflow:auto}
+  #app{grid-template-columns:1fr; height:auto; min-height:100vh}
+  #stage{height:64vh; min-height:420px}
+  #deck{overflow-y:visible; border-left:none; border-top:1px solid var(--line)}
+  #titlebar{top:14px; left:16px}
+  #titlebar h1{font-size:clamp(26px,8vw,40px)}
+  #titlebar .tag{font-size:12px; max-width:24ch}
+  #table{grid-template-columns:1fr 120px 1fr; padding:96px 10px 96px; gap:2px}
+  .agent-a{padding-left:0}
+  .agent-b{padding-right:0}
+  .face{width:clamp(88px,23vw,124px)}
+  .tower-wrap{width:92px; height:260px}
+  .tower{width:70px}
+  .tower-base{width:92px}
+  .bubble{max-width:130px; font-size:11px; padding:8px 10px}
+  .outcome{bottom:74px; font-size:12px; padding:7px 14px}
+}
 
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.001s !important; transition-duration:.05s !important}
