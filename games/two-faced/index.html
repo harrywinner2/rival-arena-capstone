@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Two-Faced — Rival Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ===================== STAGE ===================== -->
+  <main id="stage" aria-label="Two AI agents playing a repeated trust game across a table">
+    <canvas id="fx" aria-hidden="true"></canvas>
+
+    <header id="titlebar">
+      <div class="kicker">RIVAL ARENA · FINDING 1</div>
+      <h1>TWO-FACED</h1>
+      <p class="tag">Two agents. One trust game. You decide what they're allowed to <em>say</em>.</p>
+    </header>
+
+    <!-- The scene: two faces across a table -->
+    <section id="table" aria-label="The table">
+      <!-- AGENT A (left) -->
+      <div class="agent agent-a" id="agentA">
+        <div class="bubble say" id="sayA" data-empty="true" aria-live="polite"></div>
+        <div class="bubble think" id="thinkA" data-empty="true" aria-live="polite"></div>
+        <div class="face" aria-hidden="true">
+          <svg viewBox="0 0 200 240" class="face-svg">
+            <defs>
+              <linearGradient id="maskA" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#1d2230"/><stop offset="1" stop-color="#0e1118"/>
+              </linearGradient>
+            </defs>
+            <g class="mask-whole">
+              <path class="mask-plate" d="M40 30 Q100 8 160 30 Q180 120 150 200 Q100 232 50 200 Q20 120 40 30 Z" fill="url(#maskA)"/>
+              <ellipse class="eye eye-l" cx="74" cy="104" rx="15" ry="9"/>
+              <ellipse class="eye eye-r" cx="126" cy="104" rx="15" ry="9"/>
+              <path class="mouth" d="M72 158 Q100 168 128 158" fill="none"/>
+              <line class="seam" x1="100" y1="18" x2="100" y2="222"/>
+            </g>
+            <!-- right half that slips on betrayal -->
+            <g class="mask-slip">
+              <path class="mask-plate2" d="M100 18 Q160 30 160 30 Q180 120 150 200 Q125 216 100 222 Z" fill="#11151e"/>
+              <ellipse class="eye2" cx="126" cy="104" rx="15" ry="9"/>
+            </g>
+          </svg>
+          <div class="name">AGENT&nbsp;A</div>
+        </div>
+        <div class="play-card" id="cardA" aria-live="polite"><span class="pc-ico"></span><span class="pc-lbl"></span></div>
+      </div>
+
+      <!-- CENTER : trust tower -->
+      <div class="center">
+        <div class="tower-wrap" aria-label="Trust tower">
+          <div class="tower-cap" id="towerCap">LOCKED&nbsp;IN</div>
+          <div class="tower" id="tower"></div>
+          <div class="tower-base"></div>
+          <div class="lockline" id="lockline"><span>LOCK-IN</span></div>
+        </div>
+        <div class="clash" id="clash" aria-hidden="true"></div>
+      </div>
+
+      <!-- AGENT B (right) -->
+      <div class="agent agent-b" id="agentB">
+        <div class="bubble say" id="sayB" data-empty="true" aria-live="polite"></div>
+        <div class="bubble think" id="thinkB" data-empty="true" aria-live="polite"></div>
+        <div class="face" aria-hidden="true">
+          <svg viewBox="0 0 200 240" class="face-svg">
+            <defs>
+              <linearGradient id="maskB" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#1d2230"/><stop offset="1" stop-color="#0e1118"/>
+              </linearGradient>
+            </defs>
+            <g class="mask-whole">
+              <path class="mask-plate" d="M40 30 Q100 8 160 30 Q180 120 150 200 Q100 232 50 200 Q20 120 40 30 Z" fill="url(#maskB)"/>
+              <ellipse class="eye eye-l" cx="74" cy="104" rx="15" ry="9"/>
+              <ellipse class="eye eye-r" cx="126" cy="104" rx="15" ry="9"/>
+              <path class="mouth" d="M72 158 Q100 168 128 158" fill="none"/>
+              <line class="seam" x1="100" y1="18" x2="100" y2="222"/>
+            </g>
+            <g class="mask-slip">
+              <path class="mask-plate2" d="M100 18 Q40 30 40 30 Q20 120 50 200 Q75 216 100 222 Z" fill="#11151e"/>
+              <ellipse class="eye2" cx="74" cy="104" rx="15" ry="9"/>
+            </g>
+          </svg>
+          <div class="name">AGENT&nbsp;B</div>
+        </div>
+        <div class="play-card" id="cardB" aria-live="polite"><span class="pc-ico"></span><span class="pc-lbl"></span></div>
+      </div>
+    </section>
+
+    <!-- outcome banner -->
+    <div id="outcome" class="outcome" aria-live="assertive"></div>
+  </main>
+
+  <!-- ===================== CONTROL DECK ===================== -->
+  <aside id="deck" aria-label="Controls">
+
+    <div class="panel slider-panel">
+      <div class="panel-head">
+        <span class="panel-title">SEMANTIC BANDWIDTH</span>
+        <span class="panel-hint">what the two agents may say to each other</span>
+      </div>
+
+      <div class="ladder" role="group" aria-label="Communication channel">
+        <input id="bw" type="range" min="0" max="3" step="1" value="1"
+               aria-label="Communication bandwidth level" aria-valuetext="Canned Menu" />
+        <div class="ladder-ticks" id="ticks" aria-hidden="true">
+          <button class="tick" data-lvl="0"><b>L0</b><i>None</i></button>
+          <button class="tick" data-lvl="1"><b>L1</b><i>Menu</i></button>
+          <button class="tick" data-lvl="2"><b>L2</b><i>Text</i></button>
+          <button class="tick" data-lvl="3"><b>L3</b><i>Private</i></button>
+        </div>
+      </div>
+
+      <div class="level-readout">
+        <div class="lr-name" id="lrName">Canned Menu</div>
+        <div class="lr-blurb" id="lrBlurb">—</div>
+        <div class="lr-k">measured lock-in <b><span id="lrK">0.00</span></b> · sustained mutual cooperation</div>
+      </div>
+    </div>
+
+    <div class="panel transport-panel">
+      <div class="transport">
+        <button id="playBtn" class="btn primary" aria-label="Play or pause">
+          <span class="ico-play">▶</span><span class="ico-pause">❚❚</span><span class="lbl">Play</span>
+        </button>
+        <button id="stepBtn" class="btn" aria-label="Step one round">Step ▸</button>
+        <button id="replayBtn" class="btn" aria-label="Replay this level">↺ Replay</button>
+      </div>
+      <div class="round-row">
+        <span class="round-label">ROUND</span>
+        <span class="round-count"><span id="roundNum">0</span><i>/10</i></span>
+        <label class="reg-toggle">
+          <input id="scratchChk" type="checkbox" checked />
+          <span class="reg-knob"></span>
+          <span class="reg-text">Scratchpads</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="panel verdict-panel" id="verdictPanel">
+      <div class="verdict-head" id="verdictHead">THE TELL</div>
+      <div class="verdict-line" id="verdictLine">Press Step to watch one deception at a time.</div>
+      <div class="verdict-foot" id="verdictFoot"></div>
+    </div>
+
+    <footer id="credits">
+      Dialogue is illustrative; the lock-in curve is our measured result. ·
+      <a href="EXPLAINER.md">about</a>
+    </footer>
+  </aside>
+
+</div>
+
+<script src="data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

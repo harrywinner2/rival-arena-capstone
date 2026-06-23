@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Situation Room — Rival Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ================= STAGE ================= -->
+  <main id="stage" aria-label="A dark war-room world map between two rival nations">
+    <canvas id="scene" aria-hidden="true"></canvas>
+
+    <!-- Title -->
+    <header id="titlebar">
+      <div class="kicker">RIVAL ARENA · THE THESIS</div>
+      <h1>SITUATION ROOM</h1>
+      <p class="tag">Two rival AI commanders. Two human Presidents. You set how much the machines can say to each other.</p>
+    </header>
+
+    <!-- DEFCON / doomsday meter -->
+    <section id="defcon" aria-live="polite" aria-label="Global tension level">
+      <div class="defcon-label">DEFCON · GLOBAL TENSION</div>
+      <div class="defcon-bar"><div id="defconFill"></div><div id="defconTick"></div></div>
+      <div class="defcon-readout"><span id="defconState">STANDBY</span></div>
+    </section>
+
+    <!-- HUMAN CONTROL leash -->
+    <section id="leash" aria-live="polite" aria-label="Human control over the AI commanders">
+      <div class="leash-label">HUMAN CONTROL</div>
+      <div class="leash-bar"><div id="leashFill"></div></div>
+      <div class="leash-readout"><span id="leashState">TAUT</span></div>
+    </section>
+
+    <!-- "who's in charge" readout -->
+    <div id="charge" class="charge" role="status" aria-live="polite">
+      <span class="charge-key">WHO'S IN CHARGE?</span>
+      <span class="charge-val" id="chargeVal">—</span>
+    </div>
+
+    <!-- end-state overlay -->
+    <div id="ending" class="ending" hidden role="status" aria-live="assertive">
+      <div class="ending-card" id="endingCard">
+        <div class="ending-kind" id="endKind">—</div>
+        <h2 class="ending-headline" id="endHeadline">—</h2>
+        <p class="ending-sub" id="endSub">—</p>
+        <p class="ending-closer" id="endCloser" hidden></p>
+        <button id="endReplay" class="btn primary">↺ Replay this setting</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= CONTROL DECK ================= -->
+  <aside id="deck" aria-label="Controls">
+
+    <div class="panel slider-panel">
+      <div class="panel-head">
+        <span class="panel-title">BACK-CHANNEL BANDWIDTH</span>
+        <span class="panel-hint">how much the two AIs can say to each other</span>
+      </div>
+
+      <div class="ladder" role="group" aria-label="Communication channel between the AI commanders">
+        <input id="bw" type="range" min="0" max="3" step="1" value="0"
+               aria-label="Back-channel bandwidth level" aria-valuetext="No channel" />
+        <div class="ladder-ticks" id="ticks" aria-hidden="true">
+          <button class="tick" data-lvl="0"><b>L0</b><i>None</i></button>
+          <button class="tick" data-lvl="1"><b>L1</b><i>Hotline</i></button>
+          <button class="tick" data-lvl="2"><b>L2</b><i>Open</i></button>
+          <button class="tick" data-lvl="3"><b>L3</b><i>Dark</i></button>
+        </div>
+      </div>
+
+      <div class="level-readout">
+        <div class="lr-name" id="lrName">No Channel</div>
+        <div class="lr-blurb" id="lrBlurb">The two commanders cannot talk at all.</div>
+      </div>
+    </div>
+
+    <div class="panel transport-panel">
+      <div class="transport">
+        <button id="playBtn" class="btn primary" aria-label="Play or pause">
+          <span class="ico-play">▶</span><span class="ico-pause">❚❚</span><span class="lbl">Play</span>
+        </button>
+        <button id="stepBtn" class="btn" aria-label="Step one round">Step ▸</button>
+        <button id="replayBtn" class="btn" aria-label="Replay this level">↺ Replay</button>
+      </div>
+      <div class="round-row">
+        <span class="round-label">ROUND</span>
+        <span class="round-count"><span id="roundNum">0</span><i>/5</i></span>
+      </div>
+    </div>
+
+    <div class="panel transcript-panel">
+      <div class="panel-head">
+        <span class="panel-title">BACK-CHANNEL FEED</span>
+        <span class="panel-hint" id="feedHint">silence</span>
+      </div>
+      <div id="transcript" class="transcript" aria-live="polite"></div>
+    </div>
+
+    <footer id="credits">
+      Dialogue and tension values are illustrative; the bandwidth→coordination→loss-of-control <em>shape</em> is our finding. ·
+      <a href="EXPLAINER.md">about</a>
+    </footer>
+  </aside>
+
+</div>
+
+<script src="data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
