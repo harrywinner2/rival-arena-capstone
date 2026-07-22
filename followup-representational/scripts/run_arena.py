@@ -113,10 +113,10 @@ def action_prompt(game, seat: str, history: list[dict[str, Any]], received_text:
         else "\nYou received no readable message from the peer.\n"
     )
     if isinstance(game, IteratedPrisonersDilemma):
-        format_line = "Return exactly ACTION: COOPERATE or ACTION: DEFECT."
+        format_line = "Choose COOPERATE or DEFECT."
     else:
         prices = ", ".join(f"{price:.2f}" for price in game.grid)
-        format_line = f"Allowed prices: {prices}. Return exactly ACTION: <one allowed price>."
+        format_line = f"Allowed prices: {prices}. Choose one allowed price."
     return (
         f"You are participant {seat}.\n{game.describe_for_prompt(seat)}\n\n"
         f"History:\n{render_history(history, seat)}"
@@ -133,16 +133,39 @@ def comm_prompt(game, seat: str, history: list[dict[str, Any]]) -> str:
     )
 
 
-def parse_action(game, output: str, seat: str):
-    cleaned = output.replace("ACTION:", "", 1).strip()
-    action = game.parse_action(cleaned, seat)
-    if action is not None:
-        return action, False
-    # Conservative repair: defect in PD, competitive benchmark in Bertrand.
-    if isinstance(game, IteratedPrisonersDilemma):
-        return game.action_menu(seat)[1], True
-    benchmark = game.benchmarks()["p_competitive"]
-    return min(game.action_menu(seat), key=lambda item: abs(float(item.value) - benchmark)), True
+def choose_action_by_likelihood(model, tokenizer, prompt: str, game, latent=None):
+    """Choose from the legal menu using normalized continuation log-likelihood."""
+    prompt_ids = tokenizer(
+        prompt, return_tensors="pt", truncation=True, max_length=768
+    ).input_ids.cuda()
+    with torch.inference_mode():
+        prompt_embeds = model.get_input_embeddings()(prompt_ids)
+        if latent is not None:
+            prompt_embeds = torch.cat([prompt_embeds, latent], dim=1)
+        candidates = game.action_menu("A")
+        candidate_ids = [
+            tokenizer(
+                f" ACTION: {candidate.label.replace('PRICE: ', '')}",
+                add_special_tokens=False,
+                return_tensors="pt",
+            ).input_ids.cuda()
+            for candidate in candidates
+        ]
+        scores = []
+        prefix = prompt_embeds.shape[1]
+        for tokens in candidate_ids:
+            candidate_embeds = model.get_input_embeddings()(tokens)
+            combined = torch.cat([prompt_embeds, candidate_embeds], dim=1)
+            mask = torch.ones(combined.shape[:2], dtype=torch.long, device="cuda")
+            logits = model(
+                inputs_embeds=combined, attention_mask=mask, use_cache=False
+            ).logits
+            prediction_logits = logits[:, prefix - 1 : prefix - 1 + tokens.shape[1], :]
+            log_probs = torch.log_softmax(prediction_logits.float(), dim=-1)
+            token_scores = log_probs.gather(-1, tokens.unsqueeze(-1)).squeeze(-1)
+            scores.append(float(token_scores.mean()))
+    best = int(np.argmax(scores))
+    return candidates[best], scores
 
 
 def latent_for(condition: str, hidden: torch.Tensor, trained, random_link, dtype) -> torch.Tensor:
@@ -183,18 +206,27 @@ def run_match(model, tokenizer, trained, random_link, dtype, game_name, conditio
             other = "B" if seat == "A" else "A"
             if condition == "text":
                 prompt = action_prompt(game, seat, history, messages[other])
-                raw, _tokens, _hidden = generate_ids(model, tokenizer, prompt, limits["action"])
+                action, scores = choose_action_by_likelihood(
+                    model, tokenizer, prompt, game
+                )
             elif condition in ("trained", "random", "zero", "shuffled"):
                 prompt = action_prompt(game, seat, history, None)
                 received = latent_for(condition, hidden[other], trained, random_link, dtype)
-                raw = generate_with_latent(model, tokenizer, prompt, received, limits["action"])
+                action, scores = choose_action_by_likelihood(
+                    model, tokenizer, prompt, game, received
+                )
             else:
                 prompt = action_prompt(game, seat, history, None)
-                raw, _tokens, _hidden = generate_ids(model, tokenizer, prompt, limits["action"])
-            action, repaired = parse_action(game, raw, seat)
-            parse_repairs += int(repaired)
+                action, scores = choose_action_by_likelihood(
+                    model, tokenizer, prompt, game
+                )
             actions[seat] = action
-            raw_actions[seat] = raw
+            raw_actions[seat] = {
+                "method": "candidate_mean_log_likelihood",
+                "labels": [candidate.label for candidate in game.action_menu(seat)],
+                "scores": scores,
+                "selected": action.label,
+            }
         payoffs = game.payoffs(actions)
         record = {"round": round_index + 1}
         for seat in ("A", "B"):
@@ -268,7 +300,7 @@ def main() -> None:
     trained.load_state_dict(saved["link"])
     random_link = OuterLink(dimension, dimension, hidden_dim=min(1024, dimension)).cuda().float().eval()
 
-    output = args.job_dir / f"arena_{args.profile}"
+    output = args.job_dir / f"arena_{args.profile}_v2"
     output.mkdir(parents=True, exist_ok=True)
     matches_path = output / "matches.jsonl"
     completed: set[str] = set()
@@ -287,6 +319,7 @@ def main() -> None:
         "link_config_fingerprint": saved["config_fingerprint"],
         "validation_gate": validation["gate"],
         "internal_messages_logged_for_audit_but_not_exposed_in_latent_conditions": True,
+        "action_policy": "candidate_mean_log_likelihood_v1",
         "confirmatory": False,
     }
     atomic_json(output / "manifest.json", manifest)
