@@ -82,7 +82,7 @@ SPECS = {
         "L4 10 — train faithful link",
         "Trains only the representational adapter on neutral transmission, with frozen base weights and resumable checkpoints.",
         "['python', 'scripts/train_link.py', '--model', MODEL, '--output', JOB_DIR, '--job-id', JOB_ID, '--steps', str(STEPS)]",
-        {"JOB_ID": "faithful-qwen7b-001", "MODEL": "Qwen/Qwen2.5-7B-Instruct", "STEPS": "2000"},
+        {"JOB_ID": "faithful-qwen05b-t4-001", "MODEL": "Qwen/Qwen2.5-0.5B-Instruct", "STEPS": "300"},
     ),
     "20_validate_and_probe.ipynb": notebook(
         "L4 20 — validate channel and train probe",

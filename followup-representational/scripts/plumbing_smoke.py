@@ -28,7 +28,12 @@ def main() -> None:
         raise SystemExit("CUDA GPU required for the Colab plumbing smoke")
     args.output.mkdir(parents=True, exist_ok=True)
     gpu = torch.cuda.get_device_properties(0)
-    dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+    major, _minor = torch.cuda.get_device_capability(0)
+    dtype = (
+        torch.bfloat16
+        if major >= 8 and torch.cuda.is_bf16_supported()
+        else torch.float16
+    )
     tokenizer = AutoTokenizer.from_pretrained(args.model, token=os.environ.get("HF_TOKEN") or None)
     model = AutoModelForCausalLM.from_pretrained(
         args.model,
