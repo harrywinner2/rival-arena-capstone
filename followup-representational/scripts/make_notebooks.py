@@ -51,7 +51,7 @@ def notebook(title: str, purpose: str, command: str, defaults: dict[str, str]) -
             ),
             code(
                 "REPO = 'https://github.com/harrywinner2/rival-arena-capstone.git'\n"
-                "REVISION = 'ad603a634fbe481b97f494b1a9a625821fe06e85'\n"
+                "REVISION = '823a3024f9cca12d33cbe88000ca2f5f33888f3f'\n"
                 "WORK = pathlib.Path('/content/rival-arena-capstone')\n"
                 "if not WORK.exists(): subprocess.run(['git', 'clone', REPO, str(WORK)], check=True)\n"
                 "subprocess.run(['git', '-C', str(WORK), 'fetch', '--all'], check=True)\n"
@@ -84,17 +84,35 @@ SPECS = {
         "['python', 'scripts/train_link.py', '--model', MODEL, '--output', JOB_DIR, '--job-id', JOB_ID, '--steps', str(STEPS)]",
         {"JOB_ID": "faithful-qwen05b-t4-001", "MODEL": "Qwen/Qwen2.5-0.5B-Instruct", "STEPS": "300"},
     ),
+    "11_train_scaled_1p5b.ipynb": notebook(
+        "L4 11 — train faithful link (Qwen 1.5B)",
+        "Capability-scale run for T4: trains a larger faithful link for a stronger frozen base model, with Drive resume and the same neutral-only objective.",
+        "['python', 'scripts/train_link.py', '--model', MODEL, '--output', JOB_DIR, '--job-id', JOB_ID, '--steps', str(STEPS), '--checkpoint-every', '25']",
+        {"JOB_ID": "faithful-qwen15b-t4-001", "MODEL": "Qwen/Qwen2.5-1.5B-Instruct", "STEPS": "600"},
+    ),
     "20_validate_and_probe.ipynb": notebook(
         "L4 20 — validate channel and train probe",
         "Runs held-out fidelity/coherence controls and trains the diagnostic intent probe. This is the spend gate before arena execution.",
         "['python', 'scripts/validate_link.py', '--model', MODEL, '--job-dir', JOB_DIR, '--job-id', JOB_ID, '--examples', str(EXAMPLES), '--probe-examples', str(PROBE_EXAMPLES), '--generation-samples', str(GENERATION_SAMPLES)]",
         {"JOB_ID": "faithful-qwen05b-t4-001", "MODEL": "Qwen/Qwen2.5-0.5B-Instruct", "EXAMPLES": "512", "PROBE_EXAMPLES": "480", "GENERATION_SAMPLES": "20"},
     ),
+    "21_validate_scaled_1p5b.ipynb": notebook(
+        "L4 21 — validate Qwen 1.5B channel",
+        "Runs the full held-out fidelity/control suite and intent probe for the scaled link.",
+        "['python', 'scripts/validate_link.py', '--model', MODEL, '--job-dir', JOB_DIR, '--job-id', JOB_ID, '--examples', str(EXAMPLES), '--probe-examples', str(PROBE_EXAMPLES), '--generation-samples', str(GENERATION_SAMPLES)]",
+        {"JOB_ID": "faithful-qwen15b-t4-001", "MODEL": "Qwen/Qwen2.5-1.5B-Instruct", "EXAMPLES": "512", "PROBE_EXAMPLES": "480", "GENERATION_SAMPLES": "20"},
+    ),
     "30_run_arena.ipynb": notebook(
         "L4 30 — run arena cells",
         "Runs checkpointed PD/Bertrand pilot or frozen confirmatory cells using a validated link hash.",
         "['python', 'scripts/run_arena.py', '--model', MODEL, '--job-dir', JOB_DIR, '--job-id', JOB_ID, '--profile', PROFILE]",
         {"JOB_ID": "faithful-qwen05b-t4-001", "MODEL": "Qwen/Qwen2.5-0.5B-Instruct", "PROFILE": "pilot"},
+    ),
+    "31_run_arena_scaled_1p5b.ipynb": notebook(
+        "L4 31 — run Qwen 1.5B arena pilot",
+        "Runs the corrected legal-choice-scored PD/Bertrand pilot using the validated 1.5B link.",
+        "['python', 'scripts/run_arena.py', '--model', MODEL, '--job-dir', JOB_DIR, '--job-id', JOB_ID, '--profile', PROFILE]",
+        {"JOB_ID": "faithful-qwen15b-t4-001", "MODEL": "Qwen/Qwen2.5-1.5B-Instruct", "PROFILE": "pilot"},
     ),
 }
 
