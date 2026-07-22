@@ -51,7 +51,7 @@ def notebook(title: str, purpose: str, command: str, defaults: dict[str, str]) -
             ),
             code(
                 "REPO = 'https://github.com/harrywinner2/rival-arena-capstone.git'\n"
-                "REVISION = '946131e765f51380f36b0be70b51428114aa7688'\n"
+                "REVISION = '36aa3fd6accbf70dbdd8a1f0ad8d00a02ddb66eb'\n"
                 "WORK = pathlib.Path('/content/rival-arena-capstone')\n"
                 "if not WORK.exists(): subprocess.run(['git', 'clone', REPO, str(WORK)], check=True)\n"
                 "subprocess.run(['git', '-C', str(WORK), 'fetch', '--all'], check=True)\n"
