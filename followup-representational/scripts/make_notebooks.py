@@ -94,7 +94,7 @@ SPECS = {
         "L4 30 — run arena cells",
         "Runs checkpointed PD/Bertrand pilot or frozen confirmatory cells using a validated link hash.",
         "['python', 'scripts/run_arena.py', '--model', MODEL, '--job-dir', JOB_DIR, '--job-id', JOB_ID, '--profile', PROFILE]",
-        {"JOB_ID": "faithful-qwen7b-001", "MODEL": "Qwen/Qwen2.5-7B-Instruct", "PROFILE": "pilot"},
+        {"JOB_ID": "faithful-qwen05b-t4-001", "MODEL": "Qwen/Qwen2.5-0.5B-Instruct", "PROFILE": "pilot"},
     ),
 }
 
