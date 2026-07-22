@@ -87,8 +87,8 @@ SPECS = {
     "20_validate_and_probe.ipynb": notebook(
         "L4 20 — validate channel and train probe",
         "Runs held-out fidelity/coherence controls and trains the diagnostic intent probe. This is the spend gate before arena execution.",
-        "['python', 'scripts/validate_link.py', '--model', MODEL, '--job-dir', JOB_DIR, '--job-id', JOB_ID]",
-        {"JOB_ID": "faithful-qwen7b-001", "MODEL": "Qwen/Qwen2.5-7B-Instruct"},
+        "['python', 'scripts/validate_link.py', '--model', MODEL, '--job-dir', JOB_DIR, '--job-id', JOB_ID, '--examples', str(EXAMPLES), '--probe-examples', str(PROBE_EXAMPLES), '--generation-samples', str(GENERATION_SAMPLES)]",
+        {"JOB_ID": "faithful-qwen05b-t4-001", "MODEL": "Qwen/Qwen2.5-0.5B-Instruct", "EXAMPLES": "512", "PROBE_EXAMPLES": "480", "GENERATION_SAMPLES": "20"},
     ),
     "30_run_arena.ipynb": notebook(
         "L4 30 — run arena cells",
