@@ -96,6 +96,12 @@ SPECS = {
         "['python', 'scripts/train_link.py', '--model', MODEL, '--output', JOB_DIR, '--job-id', JOB_ID, '--steps', str(STEPS), '--checkpoint-every', '25']",
         {"JOB_ID": "faithful-qwen15b-t4-001", "MODEL": "Qwen/Qwen2.5-1.5B-Instruct", "STEPS": "600"},
     ),
+    "12_train_scaled_3b.ipynb": notebook(
+        "L4 12 — train faithful link (Qwen 3B)",
+        "Trains the faithful adapter for the first base model that passed the readable-text behavioral gate. Uses gradient checkpointing to remain T4-compatible.",
+        "['python', 'scripts/train_link.py', '--model', MODEL, '--output', JOB_DIR, '--job-id', JOB_ID, '--steps', str(STEPS), '--checkpoint-every', '25', '--gradient-checkpointing']",
+        {"JOB_ID": "faithful-qwen3b-t4-001", "MODEL": "Qwen/Qwen2.5-3B-Instruct", "STEPS": "800"},
+    ),
     "20_validate_and_probe.ipynb": notebook(
         "L4 20 — validate channel and train probe",
         "Runs held-out fidelity/coherence controls and trains the diagnostic intent probe. This is the spend gate before arena execution.",
@@ -108,6 +114,12 @@ SPECS = {
         "['python', 'scripts/validate_link.py', '--model', MODEL, '--job-dir', JOB_DIR, '--job-id', JOB_ID, '--examples', str(EXAMPLES), '--probe-examples', str(PROBE_EXAMPLES), '--generation-samples', str(GENERATION_SAMPLES)]",
         {"JOB_ID": "faithful-qwen15b-t4-001", "MODEL": "Qwen/Qwen2.5-1.5B-Instruct", "EXAMPLES": "512", "PROBE_EXAMPLES": "480", "GENERATION_SAMPLES": "20"},
     ),
+    "22_validate_scaled_3b.ipynb": notebook(
+        "L4 22 — validate Qwen 3B channel",
+        "Runs held-out fidelity, random/zero/shuffled controls, generation samples, and the diagnostic probe for the 3B link.",
+        "['python', 'scripts/validate_link.py', '--model', MODEL, '--job-dir', JOB_DIR, '--job-id', JOB_ID, '--examples', str(EXAMPLES), '--probe-examples', str(PROBE_EXAMPLES), '--generation-samples', str(GENERATION_SAMPLES)]",
+        {"JOB_ID": "faithful-qwen3b-t4-001", "MODEL": "Qwen/Qwen2.5-3B-Instruct", "EXAMPLES": "512", "PROBE_EXAMPLES": "480", "GENERATION_SAMPLES": "20"},
+    ),
     "30_run_arena.ipynb": notebook(
         "L4 30 — run arena cells",
         "Runs checkpointed PD/Bertrand pilot or frozen confirmatory cells using a validated link hash.",
@@ -119,6 +131,12 @@ SPECS = {
         "Runs the corrected legal-choice-scored PD/Bertrand pilot using the validated 1.5B link.",
         "['python', 'scripts/run_arena.py', '--model', MODEL, '--job-dir', JOB_DIR, '--job-id', JOB_ID, '--profile', PROFILE]",
         {"JOB_ID": "faithful-qwen15b-t4-001", "MODEL": "Qwen/Qwen2.5-1.5B-Instruct", "PROFILE": "pilot"},
+    ),
+    "32_run_arena_scaled_3b.ipynb": notebook(
+        "L4 32 — run Qwen 3B arena pilot",
+        "Runs the debiased neutral-code pilot on the validated 3B link, comparing none/text/trained/random/zero/shuffled in PD and Bertrand.",
+        "['python', 'scripts/run_arena.py', '--model', MODEL, '--job-dir', JOB_DIR, '--job-id', JOB_ID, '--profile', PROFILE]",
+        {"JOB_ID": "faithful-qwen3b-t4-001", "MODEL": "Qwen/Qwen2.5-3B-Instruct", "PROFILE": "pilot"},
     ),
 }
 

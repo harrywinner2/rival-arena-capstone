@@ -62,6 +62,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint-every", type=int, default=25)
     parser.add_argument("--seed", type=int, default=20260722)
     parser.add_argument("--fresh", action="store_true")
+    parser.add_argument("--gradient-checkpointing", action="store_true")
     return parser.parse_args()
 
 
@@ -127,6 +128,10 @@ def main() -> None:
         low_cpu_mem_usage=True,
     ).cuda().eval()
     model.config.use_cache = False
+    if args.gradient_checkpointing:
+        model.gradient_checkpointing_enable(
+            gradient_checkpointing_kwargs={"use_reentrant": False}
+        )
     for parameter in model.parameters():
         parameter.requires_grad_(False)
 
@@ -169,6 +174,7 @@ def main() -> None:
         "dtype": str(dtype),
         "torch": torch.__version__,
         "link_parameters": link.trainable_parameter_count,
+        "gradient_checkpointing": args.gradient_checkpointing,
     }
     atomic_json(args.output / "manifest.json", manifest)
     report_to_receiver(client, "training_started", manifest)
@@ -320,4 +326,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
