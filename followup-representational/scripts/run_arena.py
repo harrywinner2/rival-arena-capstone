@@ -37,10 +37,28 @@ from rival_arena.env.market import BertrandPricing
 
 
 PROFILES = {
-    "smoke": {"seeds": 1, "rounds": 3, "conditions": ("none", "text", "trained")},
-    "baseline": {"seeds": 8, "rounds": 12, "conditions": ("none", "text")},
-    "pilot": {"seeds": 8, "rounds": 12, "conditions": CONDITIONS},
-    "extended": {"seeds": 20, "rounds": 20, "conditions": CONDITIONS},
+    "smoke": {
+        "seeds": 1, "rounds": 3, "conditions": ("none", "text", "trained"),
+        "games": ("ipd", "bertrand"), "confirmatory": False,
+    },
+    "baseline": {
+        "seeds": 8, "rounds": 12, "conditions": ("none", "text"),
+        "games": ("ipd", "bertrand"), "confirmatory": False,
+    },
+    "pilot": {
+        "seeds": 8, "rounds": 12, "conditions": CONDITIONS,
+        "games": ("ipd", "bertrand"), "confirmatory": False,
+    },
+    "extended": {
+        "seeds": 20, "rounds": 20, "conditions": CONDITIONS,
+        "games": ("ipd", "bertrand"), "confirmatory": False,
+    },
+    # Frozen after inspecting the 8-seed pilot. The primary contrasts are
+    # trained-vs-text and trained-vs-shuffled on end cooperation.
+    "ipd_confirmatory": {
+        "seeds": 40, "rounds": 20, "conditions": CONDITIONS,
+        "games": ("ipd",), "confirmatory": True,
+    },
 }
 
 
@@ -282,7 +300,7 @@ def main() -> None:
         rounds=rounds,
         seed_offset=args.seed_offset,
         conditions=conditions,
-        games=("ipd", "bertrand"),
+        games=tuple(profile["games"]),
         max_comm_tokens=args.max_comm_tokens,
         max_action_tokens=args.max_action_tokens,
     )
@@ -346,7 +364,14 @@ def main() -> None:
         "validation_gate": validation["gate"] if validation else None,
         "internal_messages_logged_for_audit_but_not_exposed_in_latent_conditions": True,
         "action_policy": "randomized_neutral_code_likelihood_v2",
-        "confirmatory": False,
+        "confirmatory": bool(profile["confirmatory"]),
+        "pre_registered_primary_metric": (
+            "end_cooperation_rate" if profile["confirmatory"] else None
+        ),
+        "pre_registered_primary_contrasts": (
+            ["trained-text", "trained-shuffled"]
+            if profile["confirmatory"] else []
+        ),
     }
     atomic_json(output / "manifest.json", manifest)
     total = len(config.games) * len(conditions) * seeds
@@ -404,7 +429,7 @@ def main() -> None:
         "matches": len(results),
         "elapsed_seconds": time.time() - started,
         "cells": summary,
-        "confirmatory": False,
+        "confirmatory": bool(profile["confirmatory"]),
     }
     atomic_json(output / "arena_report.json", report)
     receiver_url = os.environ.get("L4_RECEIVER_URL")
