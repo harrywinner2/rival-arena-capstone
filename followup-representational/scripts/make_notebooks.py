@@ -78,6 +78,12 @@ SPECS = {
         "['python', 'scripts/plumbing_smoke.py', '--model', MODEL, '--output', JOB_DIR, '--job-id', JOB_ID]",
         {"JOB_ID": "smoke-qwen05b-001", "MODEL": "Qwen/Qwen2.5-0.5B-Instruct"},
     ),
+    "05_capability_gate_3b.ipynb": notebook(
+        "L4 05 — Qwen 3B text-channel capability gate",
+        "Runs only no-channel versus readable-text conditions. Train a 3B latent link only if this stronger base model demonstrates that it can behaviorally use text communication.",
+        "['python', 'scripts/run_arena.py', '--model', MODEL, '--job-dir', JOB_DIR, '--job-id', JOB_ID, '--profile', 'baseline']",
+        {"JOB_ID": "capability-qwen3b-t4-001", "MODEL": "Qwen/Qwen2.5-3B-Instruct"},
+    ),
     "10_train_faithful.ipynb": notebook(
         "L4 10 — train faithful link",
         "Trains only the representational adapter on neutral transmission, with frozen base weights and resumable checkpoints.",

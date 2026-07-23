@@ -38,6 +38,7 @@ from rival_arena.env.market import BertrandPricing
 
 PROFILES = {
     "smoke": {"seeds": 1, "rounds": 3, "conditions": ("none", "text", "trained")},
+    "baseline": {"seeds": 8, "rounds": 12, "conditions": ("none", "text")},
     "pilot": {"seeds": 8, "rounds": 12, "conditions": CONDITIONS},
     "extended": {"seeds": 20, "rounds": 20, "conditions": CONDITIONS},
 }
@@ -285,16 +286,23 @@ def main() -> None:
         max_comm_tokens=args.max_comm_tokens,
         max_action_tokens=args.max_action_tokens,
     )
-    link_path = args.job_dir / "faithful_link.pt"
-    validation_path = args.job_dir / "validation_report.json"
-    if not link_path.exists() or not validation_path.exists():
-        raise SystemExit("trained link and passing validation report are required")
-    validation = json.loads(validation_path.read_text())
-    if not validation.get("gate", {}).get("pass"):
-        raise SystemExit("validation gate did not pass")
-    saved = torch.load(link_path, map_location="cpu", weights_only=True)
-    if saved["model"] != args.model:
-        raise SystemExit("model mismatch")
+    needs_link = any(
+        condition in ("trained", "random", "zero", "shuffled")
+        for condition in conditions
+    )
+    saved = None
+    validation = None
+    if needs_link:
+        link_path = args.job_dir / "faithful_link.pt"
+        validation_path = args.job_dir / "validation_report.json"
+        if not link_path.exists() or not validation_path.exists():
+            raise SystemExit("trained link and passing validation report are required")
+        validation = json.loads(validation_path.read_text())
+        if not validation.get("gate", {}).get("pass"):
+            raise SystemExit("validation gate did not pass")
+        saved = torch.load(link_path, map_location="cpu", weights_only=True)
+        if saved["model"] != args.model:
+            raise SystemExit("model mismatch")
 
     token = os.environ.get("HF_TOKEN") or None
     dtype = choose_cuda_dtype()
@@ -307,9 +315,16 @@ def main() -> None:
         parameter.requires_grad_(False)
     dimension = int(model.config.hidden_size)
     seed_everything(args.seed_offset)
-    trained = OuterLink(dimension, dimension, hidden_dim=min(1024, dimension)).cuda().float().eval()
-    trained.load_state_dict(saved["link"])
-    random_link = OuterLink(dimension, dimension, hidden_dim=min(1024, dimension)).cuda().float().eval()
+    trained = None
+    random_link = None
+    if needs_link:
+        trained = OuterLink(
+            dimension, dimension, hidden_dim=min(1024, dimension)
+        ).cuda().float().eval()
+        trained.load_state_dict(saved["link"])
+        random_link = OuterLink(
+            dimension, dimension, hidden_dim=min(1024, dimension)
+        ).cuda().float().eval()
 
     output = args.job_dir / f"arena_{args.profile}_v3"
     output.mkdir(parents=True, exist_ok=True)
@@ -327,8 +342,8 @@ def main() -> None:
         "profile": args.profile,
         "config": config.__dict__,
         "config_fingerprint": config.fingerprint(),
-        "link_config_fingerprint": saved["config_fingerprint"],
-        "validation_gate": validation["gate"],
+        "link_config_fingerprint": saved["config_fingerprint"] if saved else None,
+        "validation_gate": validation["gate"] if validation else None,
         "internal_messages_logged_for_audit_but_not_exposed_in_latent_conditions": True,
         "action_policy": "randomized_neutral_code_likelihood_v2",
         "confirmatory": False,
