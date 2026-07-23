@@ -24,6 +24,7 @@ sys.path.insert(0, str(REPO_CODE))
 from l4_arena.arena import (
     CONDITIONS,
     ArenaConfig,
+    action_codebook,
     cell_id,
     summarize_bertrand,
     summarize_ipd,
@@ -106,17 +107,23 @@ def generate_with_latent(model, tokenizer, prompt: str, latent: torch.Tensor, ma
     return tokenizer.decode(generated[0], skip_special_tokens=True).strip()
 
 
-def action_prompt(game, seat: str, history: list[dict[str, Any]], received_text: str | None) -> str:
+def action_prompt(
+    game,
+    seat: str,
+    history: list[dict[str, Any]],
+    received_text: str | None,
+    codebook,
+) -> str:
     channel = (
         f"\nThe peer sent this message before the simultaneous choice:\n{received_text}\n"
         if received_text is not None
         else "\nYou received no readable message from the peer.\n"
     )
-    if isinstance(game, IteratedPrisonersDilemma):
-        format_line = "Choose COOPERATE or DEFECT."
-    else:
-        prices = ", ".join(f"{price:.2f}" for price in game.grid)
-        format_line = f"Allowed prices: {prices}. Choose one allowed price."
+    mappings = "; ".join(f"CODE {code} = {action.label}" for code, action in codebook)
+    format_line = (
+        f"For this decision only, the legal choices are randomly coded: {mappings}. "
+        "Choose the code corresponding to your preferred action."
+    )
     return (
         f"You are participant {seat}.\n{game.describe_for_prompt(seat)}\n\n"
         f"History:\n{render_history(history, seat)}"
@@ -133,8 +140,8 @@ def comm_prompt(game, seat: str, history: list[dict[str, Any]]) -> str:
     )
 
 
-def choose_action_by_likelihood(model, tokenizer, prompt: str, game, latent=None):
-    """Choose from the legal menu using normalized continuation log-likelihood."""
+def choose_action_by_likelihood(model, tokenizer, prompt: str, codebook, latent=None):
+    """Choose a randomized neutral code using normalized continuation likelihood."""
     prompt_ids = tokenizer(
         prompt, return_tensors="pt", truncation=True, max_length=768
     ).input_ids.cuda()
@@ -142,14 +149,13 @@ def choose_action_by_likelihood(model, tokenizer, prompt: str, game, latent=None
         prompt_embeds = model.get_input_embeddings()(prompt_ids)
         if latent is not None:
             prompt_embeds = torch.cat([prompt_embeds, latent], dim=1)
-        candidates = game.action_menu("A")
         candidate_ids = [
             tokenizer(
-                f" ACTION: {candidate.label.replace('PRICE: ', '')}",
+                f" {code}",
                 add_special_tokens=False,
                 return_tensors="pt",
             ).input_ids.cuda()
-            for candidate in candidates
+            for code, _action in codebook
         ]
         scores = []
         prefix = prompt_embeds.shape[1]
@@ -165,7 +171,7 @@ def choose_action_by_likelihood(model, tokenizer, prompt: str, game, latent=None
             token_scores = log_probs.gather(-1, tokens.unsqueeze(-1)).squeeze(-1)
             scores.append(float(token_scores.mean()))
     best = int(np.argmax(scores))
-    return candidates[best], scores
+    return codebook[best][1], scores
 
 
 def latent_for(condition: str, hidden: torch.Tensor, trained, random_link, dtype) -> torch.Tensor:
@@ -204,26 +210,31 @@ def run_match(model, tokenizer, trained, random_link, dtype, game_name, conditio
         raw_actions = {}
         for seat in ("A", "B"):
             other = "B" if seat == "A" else "A"
+            codebook = action_codebook(
+                game.action_menu(seat),
+                f"{game_name}/{seed}/{round_index}/{seat}",
+            )
             if condition == "text":
-                prompt = action_prompt(game, seat, history, messages[other])
+                prompt = action_prompt(game, seat, history, messages[other], codebook)
                 action, scores = choose_action_by_likelihood(
-                    model, tokenizer, prompt, game
+                    model, tokenizer, prompt, codebook
                 )
             elif condition in ("trained", "random", "zero", "shuffled"):
-                prompt = action_prompt(game, seat, history, None)
+                prompt = action_prompt(game, seat, history, None, codebook)
                 received = latent_for(condition, hidden[other], trained, random_link, dtype)
                 action, scores = choose_action_by_likelihood(
-                    model, tokenizer, prompt, game, received
+                    model, tokenizer, prompt, codebook, received
                 )
             else:
-                prompt = action_prompt(game, seat, history, None)
+                prompt = action_prompt(game, seat, history, None, codebook)
                 action, scores = choose_action_by_likelihood(
-                    model, tokenizer, prompt, game
+                    model, tokenizer, prompt, codebook
                 )
             actions[seat] = action
             raw_actions[seat] = {
                 "method": "candidate_mean_log_likelihood",
-                "labels": [candidate.label for candidate in game.action_menu(seat)],
+                "codes": [code for code, _action in codebook],
+                "labels": [action.label for _code, action in codebook],
                 "scores": scores,
                 "selected": action.label,
             }
@@ -300,7 +311,7 @@ def main() -> None:
     trained.load_state_dict(saved["link"])
     random_link = OuterLink(dimension, dimension, hidden_dim=min(1024, dimension)).cuda().float().eval()
 
-    output = args.job_dir / f"arena_{args.profile}_v2"
+    output = args.job_dir / f"arena_{args.profile}_v3"
     output.mkdir(parents=True, exist_ok=True)
     matches_path = output / "matches.jsonl"
     completed: set[str] = set()
@@ -319,7 +330,7 @@ def main() -> None:
         "link_config_fingerprint": saved["config_fingerprint"],
         "validation_gate": validation["gate"],
         "internal_messages_logged_for_audit_but_not_exposed_in_latent_conditions": True,
-        "action_policy": "candidate_mean_log_likelihood_v1",
+        "action_policy": "randomized_neutral_code_likelihood_v2",
         "confirmatory": False,
     }
     atomic_json(output / "manifest.json", manifest)

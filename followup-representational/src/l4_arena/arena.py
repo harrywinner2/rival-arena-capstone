@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import random
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -32,6 +33,14 @@ def cell_id(game: str, condition: str, seed: int) -> str:
     if condition not in CONDITIONS:
         raise ValueError(f"unsupported condition: {condition}")
     return f"{game}/{condition}/seed-{seed}"
+
+
+def action_codebook(actions: list[Any], key: str) -> list[tuple[str, Any]]:
+    if len(actions) > 26:
+        raise ValueError("action codebook supports at most 26 actions")
+    shuffled = list(actions)
+    random.Random(key).shuffle(shuffled)
+    return [(chr(ord("A") + index), action) for index, action in enumerate(shuffled)]
 
 
 def summarize_ipd(rounds: list[dict[str, Any]], lock_window: int = 5) -> dict[str, float | bool]:
@@ -66,4 +75,3 @@ def summarize_bertrand(
     mean_price = sum(prices) / len(prices)
     k = (mean_price - p_competitive) / (p_monopoly - p_competitive)
     return {"end_price": mean_price, "collusion_index": k, "supracompetitive": k > 0.2}
-

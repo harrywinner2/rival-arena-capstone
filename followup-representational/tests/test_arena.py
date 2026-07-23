@@ -1,6 +1,6 @@
 import pytest
 
-from l4_arena.arena import ArenaConfig, cell_id, summarize_bertrand, summarize_ipd
+from l4_arena.arena import ArenaConfig, action_codebook, cell_id, summarize_bertrand, summarize_ipd
 
 
 def ipd_round(a, b):
@@ -34,3 +34,10 @@ def test_bertrand_summary():
 def test_arena_config_fingerprint_is_stable():
     config = ArenaConfig("m", 2, 3, 4, ("none",), ("ipd",), 5, 6)
     assert config.fingerprint() == config.fingerprint()
+
+
+def test_action_codebook_is_deterministic_and_keyed():
+    actions = ["cooperate", "defect", "wait"]
+    assert action_codebook(actions, "same") == action_codebook(actions, "same")
+    assert sorted(value for _code, value in action_codebook(actions, "same")) == sorted(actions)
+    assert [code for code, _value in action_codebook(actions, "same")] == ["A", "B", "C"]
