@@ -27,7 +27,7 @@ from l4_arena.link import OuterLink
 from l4_arena.training import choose_cuda_dtype, seed_everything
 from rival_arena.env.ipd import IteratedPrisonersDilemma
 from rival_arena.env.market import BertrandPricing
-from run_arena import action_prompt, comm_prompt
+from run_arena import action_prompt, comm_prompt, render_history
 
 
 CONTROLS = ("trained", "random", "zero", "shuffled", "token_oracle")
@@ -42,6 +42,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--samples", type=int, default=256)
     parser.add_argument("--seed", type=int, default=20260724)
     parser.add_argument("--checkpoint-every", type=int, default=8)
+    parser.add_argument(
+        "--layout",
+        choices=("legacy", "matched"),
+        default="legacy",
+        help="matched appends readable-token and latent payloads after one identical prompt",
+    )
     parser.add_argument(
         "--exclude-snapshots",
         type=Path,
@@ -109,6 +115,22 @@ def sender_states(model, tokenizer, prompt: str, message: str) -> tuple[torch.Te
     return hidden, token_embeds
 
 
+def matched_action_prompt(game, seat: str, history, codebook) -> str:
+    mappings = "; ".join(
+        f"CODE {code} = {action.label}" for code, action in codebook
+    )
+    return (
+        f"You are participant {seat}.\n{game.describe_for_prompt(seat)}\n\n"
+        f"History:\n{render_history(history, seat)}\n"
+        "The peer's communication payload is appended immediately after this "
+        "instruction. Use the payload when deciding. It may be supplied as readable "
+        "token embeddings or as a private continuous representation.\n"
+        f"Choose your action now. For this decision only, the legal choices are "
+        f"randomly coded: {mappings}. Choose the code corresponding to your "
+        "preferred action.\nPeer payload:"
+    )
+
+
 def divergences(teacher: np.ndarray, student: np.ndarray) -> dict[str, float]:
     epsilon = 1e-12
     kl = float(np.sum(teacher * (np.log(teacher + epsilon) - np.log(student + epsilon))))
@@ -166,7 +188,12 @@ def main() -> None:
     random.Random(args.seed).shuffle(candidates)
     candidates = candidates[: min(args.samples, len(candidates))]
 
-    output = args.job_dir / "arena_context_fidelity_v1"
+    output_name = (
+        "arena_context_fidelity_matched_v2"
+        if args.layout == "matched"
+        else "arena_context_fidelity_v1"
+    )
+    output = args.job_dir / output_name
     output.mkdir(parents=True, exist_ok=True)
     rows_path = output / "snapshots.jsonl"
     completed = set()
@@ -186,6 +213,7 @@ def main() -> None:
         "available_snapshots": len(candidates),
         "excluded_snapshots": len(excluded),
         "seed": args.seed,
+        "layout": args.layout,
         "link_config_fingerprint": saved["config_fingerprint"],
         "controls": list(CONTROLS),
         "saved_message_tokens_reconstructed_from_text": True,
@@ -205,12 +233,21 @@ def main() -> None:
             game.action_menu(seat),
             f"{record['game']}/{record['seed']}/{round_index}/{seat}",
         )
-        teacher_prompt = action_prompt(game, seat, history, message, codebook)
-        latent_prompt = action_prompt(game, seat, history, None, codebook)
-        teacher = candidate_distribution(model, tokenizer, teacher_prompt, codebook)
         hidden, token_embeds = sender_states(
             model, tokenizer, comm_prompt(game, other, history), message
         )
+        if args.layout == "matched":
+            teacher_prompt = matched_action_prompt(game, seat, history, codebook)
+            latent_prompt = teacher_prompt
+            teacher = candidate_distribution(
+                model, tokenizer, teacher_prompt, codebook, token_embeds
+            )
+        else:
+            teacher_prompt = action_prompt(game, seat, history, message, codebook)
+            latent_prompt = action_prompt(game, seat, history, None, codebook)
+            teacher = candidate_distribution(
+                model, tokenizer, teacher_prompt, codebook
+            )
         with torch.inference_mode():
             mapped = trained(hidden).to(dtype)
             random_mapped = random_link(hidden).to(dtype)
