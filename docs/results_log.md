@@ -609,3 +609,33 @@ this. The next adapter is initialized from the original link and tuned only on
 benign context-randomized examples that reproduce contextual sender extraction
 and post-instruction receiver injection. It is a separate adapter lineage; the
 failed original confirmatory result remains immutable.
+
+### L4-Q3-context-link-v1 — benign context-aware adapter  [TRAINING]
+
+**Raw:** gitignored local import
+`followup-representational/artifacts/imports/qwen3b_context_train/contextual-qwen3b-t4-001/`.
+Imported archive SHA-256:
+`96f5ea55ee13f8f11cab9979ac9e9ab0453187829b495df1518f780359addf94`.
+
+**Design.** Initialize from the original faithful link fingerprint
+`cf471d4df05f8e23`, keep Qwen2.5-3B frozen, and update only the 8.39M link
+parameters. Training uses 4,000 neutral Alpaca examples across four benign
+collaboration templates. Sender states are extracted after contextual prefixes;
+the teacher reads the message inside its instruction while the student's mapped
+states are appended after its full private-representation instruction. No
+rival-game data, actions, histories, rewards, or labels enter training.
+
+**Run.** T4/fp16; 1,000 optimizer steps; gradient accumulation 4; learning rate
+8e-5; config fingerprint `95db00a23ed70c89`. Actual checkpoint runtime was
+1,113 seconds (18.5m). The exported report's 0.14s elapsed value is a
+resume/export artifact and is not the training duration.
+
+Loss was finite throughout. Mean loss fell from 1.323 over steps 1–50 to 0.648
+over steps 951–1000; median fell from 1.165 to 0.567. The single-batch final
+loss was 0.537 and the minimum noisy-batch loss was 0.148 at step 667. The
+checkpoint lineage, completion count, and frozen-base manifest are valid.
+
+**Status.** Training passed operational checks. It is not promoted for arena
+use until it passes both neutral held-out validation and the revised
+arena-context action-fidelity gate on snapshots disjoint from the old-link
+diagnostic set.
