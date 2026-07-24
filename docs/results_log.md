@@ -576,3 +576,36 @@ distributions on frozen arena snapshots before any more sequential games.
 pilot (50–80m), and—only after gates pass—a fresh confirmatory run (~4h).
 Reserve 8 GPU-hours total; one optional repair iteration raises the safe
 reservation to 9 hours.
+
+### L4-Q3-arena-context-fidelity-v1 — deployment diagnostic  [VALIDATION]
+
+**Raw:** gitignored local import
+`followup-representational/artifacts/imports/qwen3b_context_diagnostic/faithful-qwen3b-t4-001/arena_context_fidelity_v1/`.
+Imported archive SHA-256:
+`facaebe11330d370132b39c09dd1f7e3585f9a807dd93de5384c1bd54da12882`.
+
+**Design.** Freeze 256 action-decision snapshots from the completed IPD
+experiment. For each snapshot, compare the two-action distribution induced by
+the readable message against the distribution induced under the arena's latent
+receiver layout. Sender states are reconstructed after the saved strategic
+communication prompt. Controls are trained, shuffled, random, zero, and exact
+message-token embeddings. No link weights are updated. Runtime 505 seconds.
+
+| representation | action KL vs text | top-1 agreement | total variation |
+|---|---:|---:|---:|
+| trained | 0.269 | 0.695 | 0.232 |
+| shuffled | **0.184** | **0.742** | **0.200** |
+| random | 0.295 | 0.516 | 0.314 |
+| zero | 0.313 | 0.520 | 0.273 |
+| exact token embeddings | 0.413 | 0.594 | 0.290 |
+
+**Verdict — gate failed.** The trained link beats random but not shuffled on
+the actual deployment estimand. The exact-token control also fails because
+readable text is placed inside the action prompt while every latent is appended
+after a different, no-readable-message prompt. Thus two mismatches are present:
+(1) contextual sender states versus standalone states during training, and
+(2) receiver context/placement. Longer training on the old objective cannot fix
+this. The next adapter is initialized from the original link and tuned only on
+benign context-randomized examples that reproduce contextual sender extraction
+and post-instruction receiver injection. It is a separate adapter lineage; the
+failed original confirmatory result remains immutable.
