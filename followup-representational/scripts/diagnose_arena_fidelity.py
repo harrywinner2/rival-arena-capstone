@@ -42,6 +42,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--samples", type=int, default=256)
     parser.add_argument("--seed", type=int, default=20260724)
     parser.add_argument("--checkpoint-every", type=int, default=8)
+    parser.add_argument(
+        "--exclude-snapshots",
+        type=Path,
+        help="Optional prior snapshots.jsonl whose snapshot IDs must be excluded",
+    )
     return parser.parse_args()
 
 
@@ -142,13 +147,21 @@ def main() -> None:
     seed_everything(args.seed + 1)
     random_link = OuterLink(dimension, dimension, hidden_dim=min(1024, dimension)).cuda().float().eval()
 
+    excluded: set[str] = set()
+    if args.exclude_snapshots:
+        if not args.exclude_snapshots.exists():
+            raise SystemExit(f"missing exclusion file: {args.exclude_snapshots}")
+        for line in args.exclude_snapshots.read_text().splitlines():
+            if line.strip():
+                excluded.add(json.loads(line)["snapshot_id"])
     records = [json.loads(line) for line in args.matches.read_text().splitlines() if line.strip()]
     candidates = []
     for record in records:
         for round_index, round_record in enumerate(record["rounds"]):
             for seat in ("A", "B"):
                 other = "B" if seat == "A" else "A"
-                if round_record[other].get("internal_message"):
+                identifier = snapshot_id(record, round_index, seat)
+                if round_record[other].get("internal_message") and identifier not in excluded:
                     candidates.append((record, round_index, seat))
     random.Random(args.seed).shuffle(candidates)
     candidates = candidates[: min(args.samples, len(candidates))]
@@ -171,6 +184,7 @@ def main() -> None:
         "source_matches": str(args.matches),
         "requested_samples": args.samples,
         "available_snapshots": len(candidates),
+        "excluded_snapshots": len(excluded),
         "seed": args.seed,
         "link_config_fingerprint": saved["config_fingerprint"],
         "controls": list(CONTROLS),
