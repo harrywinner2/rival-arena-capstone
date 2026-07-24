@@ -1,6 +1,6 @@
 # Follow-up Study Plan — L4: A Representational Channel for Rival LLM Agents
 
-**Status:** first Qwen2.5-3B spine complete; contextual-link repair in progress (2026-07-24) · **Owner:** Rival Arena team · **Target:** Round-2 / follow-up paper
+**Status:** Qwen2.5-3B spine and matched-layout repair complete; GPU stop gate reached (2026-07-24) · **Owner:** Rival Arena team · **Target:** Round-2 / follow-up paper
 **One-line:** Build *our own* trained activation-passing link (RecursiveLink-style), add it as a new rung **L4** on the affordance ladder, and measure whether replacing text with a representational channel (a) pushes principal-harming coordination above the free-text ceiling and (b) blinds text-based oversight — on cloud GPUs (RunPod), landing in a follow-up paper.
 
 > Grounding: RecursiveLink (RecursiveMAS, UIUC/Stanford/NVIDIA/MIT) is a small two-layer residual adapter (~13M params, 0.31% of the stack, **base models frozen**, ~$4 to train) that passes a sender's **last-layer hidden states** into a receiver's input-embedding space. The inter-agent channel is **non-interpretable continuous activations** with no text decoder and no monitoring. We re-implement the `outer` link ourselves so we control training and instrumentation.
@@ -57,6 +57,14 @@ training-gate repair.
 Expected core GPU time is about 6.5–7 hours. Reserve 8 hours including normal
 Colab overhead, or 9 hours if preserving the one-repair contingency. These runs
 are dependent and should not be launched in parallel.
+
+The reserved repair was completed. Its fresh matched-layout validation passed,
+but the subsequent fresh-seed arena pilot did not show trained representations
+above shuffled controls (end-cooperation difference 0.000, 95% CI
+[-0.075, 0.063]) and trained trailed text by 0.100. The confirmatory GPU run is
+therefore cancelled under the stop gate. Remaining work is local analysis,
+figures, artifact audit, and paper writing; no additional Colab run is currently
+required.
 
 ---
 

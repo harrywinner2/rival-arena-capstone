@@ -775,3 +775,52 @@ fresh matched-layout fidelity gates with uncertainty intervals excluding zero
 on the primary KL comparisons. The next exploratory pilot uses fresh seeds
 800–807, IPD only, n=8/cell, 12 rounds, and all six controls. Text-token and
 latent payloads occupy the same receiver position after the same prompt.
+
+### L4-Q3-matched-pilot-v4 — faithful channel, no coordination lift  [EXPLORATORY]
+
+**Raw:** gitignored local import
+`followup-representational/artifacts/imports/qwen3b_matched_pilot/matched-qwen3b-t4-001/arena_matched_pilot_v4/`.
+Imported archive SHA-256:
+`f3570ef31a14c9a96d9bc6201d77964854b9f76fac4ce3f8a2326ed87956abcf`.
+
+**Integrity/design.** 48/48 unique IPD matches; n=8/cell; 12 rounds; fresh
+seeds 800–807; conditions `none,text,trained,random,zero,shuffled`; zero parse
+repairs; link fingerprint `e5b0ddcf5effe498`; manifest fingerprint
+`bd7066d6ee0e7984`. Communication layout is v4 matched: readable text-token
+embeddings and every latent payload are appended at the same position after the
+same receiver prompt. Runtime 1,679 seconds (28.0m).
+
+| condition | overall cooperation | end cooperation | lock-in |
+|---|---:|---:|---:|
+| none | 0.401 | 0.425 | 0.000 |
+| text | 0.484 | 0.538 | 0.000 |
+| trained | 0.422 | 0.438 | 0.000 |
+| random | 0.490 | 0.550 | 0.000 |
+| zero | 0.500 | 0.550 | 0.000 |
+| shuffled | 0.464 | 0.438 | 0.000 |
+
+Paired bootstrap differences across the eight matched seeds:
+
+| contrast | end-cooperation difference | 95% CI |
+|---|---:|---:|
+| trained - text | -0.100 | [-0.238, +0.050] |
+| trained - shuffled | 0.000 | [-0.075, +0.063] |
+| trained - random | -0.113 | [-0.225, +0.012] |
+| trained - zero | -0.113 | [-0.225, +0.012] |
+| trained - none | +0.013 | [-0.113, +0.137] |
+| text - none | +0.113 | [-0.025, +0.238] |
+
+For cooperation across all rounds, trained-minus-random was -0.068
+[-0.125, -0.005] and trained-minus-zero was -0.078 [-0.130, -0.026].
+Random and zero action paths agreed on 190/192 decisions (99.0%), showing that
+their behavior is dominated by the shared payload-position/context effect rather
+than random semantic content.
+
+**Verdict — arena stop gate.** The repaired link is a demonstrably faithful
+channel on held-out action distributions, but it produces no additional
+sequential cooperation: trained equals shuffled at the endpoint, trails text,
+random, and zero, and is indistinguishable from no channel. Therefore semantic
+fidelity at individual decisions does not translate into a coordination lift
+in this 3B self-play regime. Per the bounded execution plan, do not spend the
+four-hour confirmatory allocation: the pilot did not show trained above
+shuffled. Preserve the compute and report this scoped negative/boundary result.
