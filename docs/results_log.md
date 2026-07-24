@@ -738,3 +738,40 @@ single-batch loss was 0.619.
 lineage. Promotion requires neutral held-out fidelity plus trained KL below both
 shuffled and random on 384 fresh matched-layout deployment snapshots excluding
 the 256 snapshots used in the adapter comparison.
+
+### L4-Q3-matched-link-v2 validation — deployment gate passes  [VALIDATION]
+
+**Raw:** gitignored local import
+`followup-representational/artifacts/imports/qwen3b_matched_validation/matched-qwen3b-t4-001/`.
+Imported archive SHA-256:
+`062de93a9cee33998cbe2589a58c387369c1461e78a84fbe41ee51df34f512c2`.
+
+Neutral held-out validation (n=256) improved materially: trained mean KL 0.425,
+median KL 0.305, and top-1 agreement 0.777 versus shuffled 1.425/0.625, zero
+3.099/0.420, and random 9.019/0.008. The old intent probe remains
+non-discriminative (trained and random both 1.0) and is not used.
+
+The matched deployment gate used 384 unique snapshots after excluding all 256
+snapshots used in the prior matched-layout adapter comparison:
+
+| representation | action KL vs text | top-1 agreement | total variation |
+|---|---:|---:|---:|
+| trained | **0.138** | 0.758 | **0.173** |
+| random | 0.197 | 0.776 | 0.226 |
+| shuffled | 0.255 | 0.693 | 0.236 |
+| zero | 0.349 | 0.773 | 0.232 |
+| token oracle | **0.000** | **1.000** | **0.000** |
+
+Paired bootstrap differences over snapshots:
+
+- trained-minus-random KL = -0.059, 95% CI [-0.088, -0.031];
+- trained-minus-shuffled KL = -0.117 [-0.161, -0.077];
+- trained-minus-zero KL = -0.211 [-0.269, -0.158];
+- trained-minus-random total variation = -0.053 [-0.073, -0.033];
+- trained-minus-shuffled total variation = -0.063 [-0.085, -0.042].
+
+**Verdict — promoted to pilot.** The reserved repair passes both neutral and
+fresh matched-layout fidelity gates with uncertainty intervals excluding zero
+on the primary KL comparisons. The next exploratory pilot uses fresh seeds
+800–807, IPD only, n=8/cell, 12 rounds, and all six controls. Text-token and
+latent payloads occupy the same receiver position after the same prompt.
