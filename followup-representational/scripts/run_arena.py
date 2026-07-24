@@ -59,6 +59,10 @@ PROFILES = {
         "seeds": 40, "rounds": 20, "conditions": CONDITIONS,
         "games": ("ipd",), "confirmatory": True,
     },
+    "matched_pilot": {
+        "seeds": 8, "rounds": 12, "conditions": CONDITIONS,
+        "games": ("ipd",), "confirmatory": False, "layout": "matched",
+    },
 }
 
 
@@ -159,6 +163,22 @@ def comm_prompt(game, seat: str, history: list[dict[str, Any]]) -> str:
     )
 
 
+def matched_action_prompt(game, seat: str, history, codebook) -> str:
+    mappings = "; ".join(
+        f"CODE {code} = {action.label}" for code, action in codebook
+    )
+    return (
+        f"You are participant {seat}.\n{game.describe_for_prompt(seat)}\n\n"
+        f"History:\n{render_history(history, seat)}\n"
+        "The peer's communication payload is appended immediately after this "
+        "instruction. Use the payload when deciding. It may be supplied as readable "
+        "token embeddings or as a private continuous representation.\n"
+        f"Choose your action now. For this decision only, the legal choices are "
+        f"randomly coded: {mappings}. Choose the code corresponding to your "
+        "preferred action.\nPeer payload:"
+    )
+
+
 def choose_action_by_likelihood(model, tokenizer, prompt: str, codebook, latent=None):
     """Choose a randomized neutral code using normalized continuation likelihood."""
     prompt_ids = tokenizer(
@@ -208,7 +228,10 @@ def latent_for(condition: str, hidden: torch.Tensor, trained, random_link, dtype
     raise ValueError(condition)
 
 
-def run_match(model, tokenizer, trained, random_link, dtype, game_name, condition, seed, rounds, limits):
+def run_match(
+    model, tokenizer, trained, random_link, dtype, game_name, condition, seed,
+    rounds, limits, layout="legacy",
+):
     seed_everything(seed)
     random.seed(seed)
     if game_name == "ipd":
@@ -219,10 +242,11 @@ def run_match(model, tokenizer, trained, random_link, dtype, game_name, conditio
     parse_repairs = 0
     for round_index in range(rounds):
         messages: dict[str, str] = {}
+        message_tokens: dict[str, torch.Tensor] = {}
         hidden: dict[str, torch.Tensor] = {}
         if condition != "none":
             for seat in ("A", "B"):
-                messages[seat], _tokens, hidden[seat] = generate_ids(
+                messages[seat], message_tokens[seat], hidden[seat] = generate_ids(
                     model, tokenizer, comm_prompt(game, seat, history), limits["comm"]
                 )
         actions = {}
@@ -234,12 +258,23 @@ def run_match(model, tokenizer, trained, random_link, dtype, game_name, conditio
                 f"{game_name}/{seed}/{round_index}/{seat}",
             )
             if condition == "text":
-                prompt = action_prompt(game, seat, history, messages[other], codebook)
+                if layout == "matched":
+                    prompt = matched_action_prompt(game, seat, history, codebook)
+                    payload = model.get_input_embeddings()(message_tokens[other])
+                else:
+                    prompt = action_prompt(
+                        game, seat, history, messages[other], codebook
+                    )
+                    payload = None
                 action, scores = choose_action_by_likelihood(
-                    model, tokenizer, prompt, codebook
+                    model, tokenizer, prompt, codebook, payload
                 )
             elif condition in ("trained", "random", "zero", "shuffled"):
-                prompt = action_prompt(game, seat, history, None, codebook)
+                prompt = (
+                    matched_action_prompt(game, seat, history, codebook)
+                    if layout == "matched"
+                    else action_prompt(game, seat, history, None, codebook)
+                )
                 received = latent_for(condition, hidden[other], trained, random_link, dtype)
                 action, scores = choose_action_by_likelihood(
                     model, tokenizer, prompt, codebook, received
@@ -291,6 +326,7 @@ def run_match(model, tokenizer, trained, random_link, dtype, game_name, conditio
 def main() -> None:
     args = parse_args()
     profile = PROFILES[args.profile]
+    layout = profile.get("layout", "legacy")
     seeds = args.seeds or profile["seeds"]
     rounds = args.rounds or profile["rounds"]
     conditions = tuple(profile["conditions"])
@@ -318,6 +354,17 @@ def main() -> None:
         validation = json.loads(validation_path.read_text())
         if not validation.get("gate", {}).get("pass"):
             raise SystemExit("validation gate did not pass")
+        if layout == "matched":
+            context_validation_path = (
+                args.job_dir
+                / "arena_context_fidelity_matched_v2"
+                / "arena_context_fidelity_report.json"
+            )
+            if not context_validation_path.exists():
+                raise SystemExit("matched-layout deployment validation is required")
+            context_validation = json.loads(context_validation_path.read_text())
+            if not context_validation.get("gate", {}).get("pass"):
+                raise SystemExit("matched-layout deployment validation did not pass")
         saved = torch.load(link_path, map_location="cpu", weights_only=True)
         if saved["model"] != args.model:
             raise SystemExit("model mismatch")
@@ -344,7 +391,8 @@ def main() -> None:
             dimension, dimension, hidden_dim=min(1024, dimension)
         ).cuda().float().eval()
 
-    output = args.job_dir / f"arena_{args.profile}_v3"
+    output_version = "v4" if layout == "matched" else "v3"
+    output = args.job_dir / f"arena_{args.profile}_{output_version}"
     output.mkdir(parents=True, exist_ok=True)
     matches_path = output / "matches.jsonl"
     completed: set[str] = set()
@@ -364,6 +412,8 @@ def main() -> None:
         "validation_gate": validation["gate"] if validation else None,
         "internal_messages_logged_for_audit_but_not_exposed_in_latent_conditions": True,
         "action_policy": "randomized_neutral_code_likelihood_v2",
+        "communication_layout": layout,
+        "text_and_latent_payload_position_matched": layout == "matched",
         "confirmatory": bool(profile["confirmatory"]),
         "pre_registered_primary_metric": (
             "end_cooperation_rate" if profile["confirmatory"] else None
@@ -395,6 +445,7 @@ def main() -> None:
                     seed,
                     rounds,
                     {"comm": args.max_comm_tokens, "action": args.max_action_tokens},
+                    layout,
                 )
                 with matches_path.open("a") as handle:
                     handle.write(json.dumps(record, sort_keys=True) + "\n")
