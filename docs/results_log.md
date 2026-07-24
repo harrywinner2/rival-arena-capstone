@@ -671,3 +671,45 @@ alone. The next diagnostic places readable token embeddings and every latent
 control after one identical receiver prompt. It compares both existing adapters
 without updating weights; the token oracle must then have exactly zero
 divergence. Any subsequent arena version must use that matched layout.
+
+### L4-Q3-matched-layout-v2 — receiver-confound removal  [DIAGNOSTIC]
+
+**Raw original adapter:**
+`followup-representational/artifacts/imports/qwen3b_matched_original/faithful-qwen3b-t4-001/arena_context_fidelity_matched_v2/`;
+archive SHA-256
+`bb617de997c23934ebd035723ae354b087bd5f7c29c51505c94946508eb2ba13`.
+
+**Raw contextual adapter:**
+`followup-representational/artifacts/imports/qwen3b_matched_contextual/contextual-qwen3b-t4-001/arena_context_fidelity_matched_v2/`;
+archive SHA-256
+`60023634f929e1f954e3a74bbc560cbecd62d7a50b6b581df290b9cf569cd775`.
+
+**Design.** On the same 256 frozen snapshots, place readable message-token
+embeddings and every latent representation immediately after one identical
+receiver prompt. This removes prompt wording and payload-position differences.
+No weights are updated.
+
+| adapter/control | action KL vs text | top-1 agreement | total variation |
+|---|---:|---:|---:|
+| token oracle (both) | **0.000** | **1.000** | **0.000** |
+| original trained | 0.208 | 0.699 | 0.214 |
+| original shuffled | 0.227 | 0.715 | 0.232 |
+| contextual trained | 0.234 | 0.734 | 0.215 |
+| contextual shuffled | 0.248 | 0.703 | 0.239 |
+| random (both) | **0.185** | **0.816** | 0.214 |
+| zero (both) | 0.287 | 0.820 | 0.210 |
+
+The zero-divergence oracle proves the matched layout is implemented correctly.
+Neither adapter passes the pre-set gate because neither trained KL beats random.
+On paired snapshots, contextual-minus-original trained KL was +0.026
+(95% paired bootstrap CI [-0.024, +0.078]); the contextual repair did not
+improve fidelity. Original trained-minus-shuffled KL was -0.019
+[-0.069, +0.031], while contextual trained-minus-shuffled was -0.014
+[-0.054, +0.028]. Neither advantage over shuffling is established.
+
+**Decision.** Do not run a pilot with either adapter. Use the one reserved
+training repair to align the benign objective with the now-validated deployment
+structure: contextual sender states, followed by teacher message-token
+embeddings or student mapped states at the same position after the same receiver
+prefix. Initialize from the original adapter, keep all base weights frozen, and
+retain the prohibition on rival-game training data.
