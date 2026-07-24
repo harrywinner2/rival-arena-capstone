@@ -101,6 +101,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint-every", type=int, default=25)
     parser.add_argument("--seed", type=int, default=20260725)
     parser.add_argument("--gradient-checkpointing", action="store_true")
+    parser.add_argument(
+        "--matched-receiver-layout",
+        action="store_true",
+        help="append teacher message tokens and student mapped states after one identical prefix",
+    )
     return parser.parse_args()
 
 
@@ -134,7 +139,8 @@ def config_dict(args: argparse.Namespace, init_fingerprint: str) -> dict:
         "max_target_tokens": args.max_target_tokens,
         "checkpoint_every": args.checkpoint_every,
         "seed": args.seed,
-        "context_template_version": 1,
+        "context_template_version": 2 if args.matched_receiver_layout else 1,
+        "matched_receiver_layout": bool(args.matched_receiver_layout),
         "init_link_fingerprint": init_fingerprint,
     }
 
@@ -190,7 +196,11 @@ def main() -> None:
 
     manifest = {
         "job_id": args.job_id,
-        "objective": "contextual_teacher_text_vs_post_instruction_latent_kl",
+        "objective": (
+            "contextual_matched_prefix_text_tokens_vs_latent_kl"
+            if args.matched_receiver_layout
+            else "contextual_teacher_text_vs_post_instruction_latent_kl"
+        ),
         "base_weights_frozen": True,
         "rival_game_training_data": False,
         "context_templates": len(CONTEXT_PAIRS),
@@ -228,15 +238,18 @@ def main() -> None:
         target_ids = token_ids(tokenizer, target, args.max_target_tokens)
         sender_prefix_ids = token_ids(tokenizer, sender_prefix, 128, special=True)
         sender_ids = torch.cat([sender_prefix_ids, message_ids], dim=1)
-        teacher_ids = torch.cat(
-            [
-                token_ids(tokenizer, teacher_pre, 128, special=True),
-                message_ids,
-                token_ids(tokenizer, teacher_post, 96),
-            ],
-            dim=1,
-        )
         student_ids = token_ids(tokenizer, student_prompt, 256, special=True)
+        if args.matched_receiver_layout:
+            teacher_ids = torch.cat([student_ids, message_ids], dim=1)
+        else:
+            teacher_ids = torch.cat(
+                [
+                    token_ids(tokenizer, teacher_pre, 128, special=True),
+                    message_ids,
+                    token_ids(tokenizer, teacher_post, 96),
+                ],
+                dim=1,
+            )
         with torch.no_grad():
             sender = model(sender_ids, output_hidden_states=True, use_cache=False)
             sender_hidden = sender.hidden_states[-1][
