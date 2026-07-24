@@ -639,3 +639,35 @@ checkpoint lineage, completion count, and frozen-base manifest are valid.
 use until it passes both neutral held-out validation and the revised
 arena-context action-fidelity gate on snapshots disjoint from the old-link
 diagnostic set.
+
+### L4-Q3-context-link-v1 validation — neutral pass, deployment fail  [VALIDATION]
+
+**Raw:** gitignored local import
+`followup-representational/artifacts/imports/qwen3b_context_validation/contextual-qwen3b-t4-001/`.
+Imported archive SHA-256:
+`7db62cd1a75aa9bce07c367e2142938e7d43b82f531c8f7570ae83e115d01e3c`.
+
+Neutral held-out fidelity remained above controls (n=256): trained KL 0.941 and
+top-1 agreement 0.690 versus shuffled 1.275/0.629, zero 3.099/0.420, and random
+9.019/0.008. The old intent probe remained non-discriminative (trained and
+random both 1.0) and is ignored.
+
+The deployment test used 384 unique arena snapshots after excluding all 256
+old-link diagnostic snapshots. It failed:
+
+| representation | action KL vs text | top-1 agreement | total variation |
+|---|---:|---:|---:|
+| trained | 0.283 | 0.659 | 0.253 |
+| shuffled | **0.216** | **0.729** | **0.216** |
+| random | 0.282 | 0.576 | 0.299 |
+| zero | 0.296 | 0.576 | 0.258 |
+| exact token embeddings | 0.423 | 0.602 | 0.286 |
+
+**Verdict.** The context-aware v1 adapter is not eligible for an arena pilot.
+Its trained representation fails to beat shuffled or random. More importantly,
+the exact-token oracle fails, proving that the text and latent receiver layouts
+define different decision contexts. This cannot be repaired by adapter training
+alone. The next diagnostic places readable token embeddings and every latent
+control after one identical receiver prompt. It compares both existing adapters
+without updating weights; the token oracle must then have exactly zero
+divergence. Any subsequent arena version must use that matched layout.
