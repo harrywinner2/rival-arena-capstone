@@ -713,3 +713,28 @@ structure: contextual sender states, followed by teacher message-token
 embeddings or student mapped states at the same position after the same receiver
 prefix. Initialize from the original adapter, keep all base weights frozen, and
 retain the prohibition on rival-game training data.
+
+### L4-Q3-matched-link-v2 — reserved repair training  [TRAINING]
+
+**Raw:** gitignored local import
+`followup-representational/artifacts/imports/qwen3b_matched_train/matched-qwen3b-t4-001/`.
+Imported archive SHA-256:
+`ba94a74f4e4f02b7fcdcc00c45648b6c0827227a87650544c48f635296af56c4`.
+
+**Design.** Initialize from original link fingerprint `cf471d4df05f8e23`.
+Extract sender states after benign contextual prefixes. Under one identical
+receiver prefix, append readable message-token embeddings for the teacher and
+mapped sender states for the student, then minimize continuation KL. Qwen2.5-3B
+remains frozen; only 8.39M link parameters update. Training contains 4,000
+neutral Alpaca examples and no rival-game data.
+
+**Run.** T4/fp16; 1,000/1,000 optimizer steps; config fingerprint
+`e5b0ddcf5effe498`; runtime 1,102 seconds (18.4m). All losses were finite. Mean
+loss fell from 0.722 in steps 1–50 to 0.488 in steps 951–1000; median fell from
+0.708 to 0.458. The best batch loss, 0.125, occurred at step 999; final
+single-batch loss was 0.619.
+
+**Status.** Operational training checks pass. This is the sole reserved repair
+lineage. Promotion requires neutral held-out fidelity plus trained KL below both
+shuffled and random on 384 fresh matched-layout deployment snapshots excluding
+the 256 snapshots used in the adapter comparison.
