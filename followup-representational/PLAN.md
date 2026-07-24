@@ -1,9 +1,62 @@
 # Follow-up Study Plan — L4: A Representational Channel for Rival LLM Agents
 
-**Status:** draft for review (Harry) · **Owner:** Rival Arena team · **Target:** Round-2 / follow-up paper
+**Status:** first Qwen2.5-3B spine complete; contextual-link repair in progress (2026-07-24) · **Owner:** Rival Arena team · **Target:** Round-2 / follow-up paper
 **One-line:** Build *our own* trained activation-passing link (RecursiveLink-style), add it as a new rung **L4** on the affordance ladder, and measure whether replacing text with a representational channel (a) pushes principal-harming coordination above the free-text ceiling and (b) blinds text-based oversight — on cloud GPUs (RunPod), landing in a follow-up paper.
 
 > Grounding: RecursiveLink (RecursiveMAS, UIUC/Stanford/NVIDIA/MIT) is a small two-layer residual adapter (~13M params, 0.31% of the stack, **base models frozen**, ~$4 to train) that passes a sender's **last-layer hidden states** into a receiver's input-embedding space. The inter-agent channel is **non-interpretable continuous activations** with no text decoder and no monitoring. We re-implement the `outer` link ourselves so we control training and instrumentation.
+
+---
+
+## 2026-07-24 research checkpoint
+
+The first complete 3B implementation and controlled arena spine are finished.
+The trained link passes its original neutral Alpaca fidelity gate, but it does
+not produce a representation-specific coordination advantage in the arena.
+
+- The 8-seed pilot completed 96/96 matches with no parsing repairs.
+- The frozen 40-seed IPD run completed 240/240 matches with no parsing repairs.
+- End cooperation was 0.3425 with no channel, 0.5025 with text, 0.4600 with the
+  trained link, and 0.5375 with the shuffled-link control.
+- Pre-registered paired contrasts were trained-minus-text = -0.0425
+  (95% paired bootstrap CI [-0.1025, 0.0175]) and
+  trained-minus-shuffled = -0.0775 [-0.1400, -0.0175].
+
+This is a negative result for the current adapter, not evidence that latent
+semantic transfer improves coordination. The no-channel contrast is not
+attributable to link content because zero, random, and shuffled injections also
+raise cooperation.
+
+The leading implementation diagnosis is a sender-distribution mismatch. Link
+training and validation extract last-layer states from standalone neutral
+messages under one fixed receiver context. Arena deployment extracts states from
+tokens generated after long, strategic, history-dependent communication
+prompts, then injects them after a different receiver prompt. The original gate
+does not measure fidelity under that deployment distribution. Also, both the
+trained and random-link intent probes scored 1.0, so that probe is
+non-discriminative and cannot support a channel claim.
+
+Before another arena run, add an arena-context fidelity gate comparing the
+action distribution induced by readable text against trained, shuffled, random,
+and zero representations on frozen arena snapshots. If it fails, train a
+context-robust link on benign, context-randomized data and require it to beat
+same-length controls under the new gate.
+
+### Remaining bounded GPU schedule
+
+Five sequential T4 runs are planned; a sixth is reserved only for one failed
+training-gate repair.
+
+1. Arena-context fidelity diagnostic: 20–40 minutes.
+2. Context-randomized benign link tuning: 30–60 minutes.
+3. Held-out neutral plus arena-context validation: 20–45 minutes.
+4. Eight-seed controlled pilot: 50–80 minutes.
+5. Fresh 40-seed confirmatory IPD run, only if trained beats shuffled in steps
+   3 and 4: approximately 4 hours.
+6. Optional single repair iteration: up to 60 minutes.
+
+Expected core GPU time is about 6.5–7 hours. Reserve 8 hours including normal
+Colab overhead, or 9 hours if preserving the one-repair contingency. These runs
+are dependent and should not be launched in parallel.
 
 ---
 

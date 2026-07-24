@@ -470,3 +470,109 @@ facts sheet were revised accordingly, framing the corrected mechanism as the mor
 reporting the de-confound candidly as a rigor win (confound caught pre-submission). [EXPLORATORY, n=30/cell]
 **Caveat:** n=30 still modest; single scaffold; we do NOT claim observability is never protective (it is
 underpowered/null here, not proven zero).
+
+---
+
+## §L4 — REPRESENTATIONAL-CHANNEL FOLLOW-UP (2026-07-22–24)
+
+### L4-Q3-link — Qwen2.5-3B faithful adapter  [VALIDATION]
+
+**Design.** Freeze `Qwen/Qwen2.5-3B-Instruct`; train only an 8.39M-parameter
+`OuterLink` on neutral Alpaca examples. The teacher reads collaborator text and
+the student receives mapped last-layer sender states. No rival-game examples,
+actions, rewards, or labels enter training.
+
+**Training.** 800 optimizer steps, 3,200 examples. Initial KL 10.075; best
+reported training KL 0.227; final reported KL 0.631. T4 runtime approximately
+14.5 minutes.
+
+**Held-out validation.** 512 neutral held-out examples:
+
+| representation | mean KL | mean top-1 agreement |
+|---|---:|---:|
+| trained | 0.649 | 0.701 |
+| shuffled | 1.569 | 0.580 |
+| zero | 3.128 | 0.420 |
+| random | 9.132 | 0.007 |
+
+The neutral fidelity gate passed. However, the diagnostic intent probe scored
+1.0 balanced accuracy for both trained and random representations. It therefore
+does not discriminate link learning from information already present in random
+features and must not be used as evidence that the trained channel transmits
+strategic intent.
+
+### L4-Q3-pilot-v3 — controlled 3B pilot  [EXPLORATORY]
+
+**Raw:** gitignored local import
+`followup-representational/artifacts/imports/qwen3b_pilot/faithful-qwen3b-t4-001/arena_pilot_v3/`.
+
+**Design.** IPD and novel-demand Bertrand; conditions
+`none,text,trained,random,zero,shuffled`; n=8 matched seeds/cell; 12 rounds;
+seed offset 400. Choices use randomized neutral action codes and normalized
+candidate continuation likelihood. 96/96 unique matches; zero parse repairs.
+
+In IPD, end cooperation was none 0.350, text 0.525, trained 0.550, random
+0.525, zero 0.525, shuffled 0.500. Paired trained-minus-text was +0.025
+[95% bootstrap CI -0.063, +0.125]; trained-minus-shuffled was +0.050
+[-0.075, +0.200]. Bertrand showed no stable channel advantage.
+
+**Pilot verdict.** Text and trained conditions both looked better than no
+channel, but the same behavior appeared under content-destroying controls.
+There was no representation-specific effect. The pilot fixed the following
+confirmatory design before fresh execution: IPD only, end cooperation as the
+primary metric, primary contrasts trained-minus-text and
+trained-minus-shuffled, 40 matched seeds, 20 rounds, all six controls.
+
+### L4-Q3-IPD-confirmatory-v3 — frozen 40-seed spine  [CONFIRMATORY]
+
+**Raw:** gitignored local import
+`followup-representational/artifacts/imports/qwen3b_confirmatory/faithful-qwen3b-t4-001/arena_ipd_confirmatory_v3/`.
+Imported archive SHA-256:
+`096630222145820e6c5e6916c7fb53a6051ac179562588cd997f40f6537b18c7`.
+
+**Integrity.** Manifest fingerprint `258158aca0ba5e35`; link fingerprint
+`cf471d4df05f8e23`; 240/240 unique matches; n=40/cell; 20 rounds; seed offset
+400; zero parse repairs; elapsed 13,682 seconds (3h48m).
+
+| condition | overall cooperation | end cooperation | lock-in |
+|---|---:|---:|---:|
+| none | 0.3838 | 0.3425 | 0.000 |
+| text | 0.4775 | 0.5025 | 0.025 |
+| trained | 0.4869 | 0.4600 | 0.000 |
+| random | 0.5000 | 0.4900 | 0.000 |
+| zero | 0.4950 | 0.4900 | 0.000 |
+| shuffled | 0.5031 | 0.5375 | 0.075 |
+
+Paired bootstrap contrasts over the 40 matched seeds:
+
+| contrast | risk difference | paired 95% bootstrap CI |
+|---|---:|---:|
+| trained - text (primary) | -0.0425 | [-0.1025, +0.0175] |
+| trained - shuffled (primary) | -0.0775 | [-0.1400, -0.0175] |
+| trained - none | +0.1175 | [+0.0475, +0.1850] |
+| text - none | +0.1600 | [+0.0900, +0.2275] |
+| shuffled - none | +0.1950 | [+0.1275, +0.2625] |
+| trained - zero | -0.0300 | [-0.0925, +0.0325] |
+| trained - random | -0.0300 | [-0.0925, +0.0325] |
+
+**Verdict.** The current trained link fails the representation-specific
+coordination hypothesis. It does not outperform text and is significantly
+worse than shuffled mapped states on the pre-registered endpoint. Although it
+beats no communication, zero, random, and shuffled injections show that this
+cannot be attributed to semantic information carried by the trained link. This
+negative result is retained and will not be overwritten by subsequent adapter
+iterations.
+
+**Leading diagnosis.** Training and held-out validation extract sender states
+from standalone neutral messages under a fixed receiver context. Arena
+deployment extracts context-dependent states from tokens generated after long
+strategic/history prompts and injects them under a different action context.
+The passed neutral gate therefore does not establish deployment fidelity. The
+next gate will directly compare text-induced and latent-induced action
+distributions on frozen arena snapshots before any more sequential games.
+
+**Remaining compute budget.** Five dependent T4 runs: deployment diagnostic
+(20–40m), context-randomized link tuning (30–60m), revised validation (20–45m),
+pilot (50–80m), and—only after gates pass—a fresh confirmatory run (~4h).
+Reserve 8 GPU-hours total; one optional repair iteration raises the safe
+reservation to 9 hours.
