@@ -29,6 +29,17 @@ We label every claim **[C] confirmatory** (pre-registered spine, fresh held-out 
 
 ---
 
+## L4 representational-channel follow-up
+
+The July 2026 follow-up trained continuous hidden-state communication links at
+Qwen2.5 0.5B, 1.5B, and 3B scale, identified and repaired a receiver-layout
+confound, and completed a fresh controlled IPD pilot. The final adapter passed
+deployment-specific fidelity validation but did not increase sequential
+cooperation. Read the complete chronology, results, caveats, and reproducibility
+map in [`docs/L4_FULL_RESEARCH_SUMMARY.md`](docs/L4_FULL_RESEARCH_SUMMARY.md).
+
+---
+
 ## What's in this repo
 
 ```
