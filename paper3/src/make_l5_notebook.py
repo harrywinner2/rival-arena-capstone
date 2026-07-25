@@ -90,6 +90,15 @@ disk and continues from the last checkpoint.
 - Each stage writes a `*.done` marker; re-running a finished stage is a no-op that loads results.
 
 **If a cell dies, just run it again.**
+
+### Order of execution
+
+Run the cells **top to bottom the first time**, and after any runtime change (switching to an
+A100 restarts the kernel and wipes every variable — the ledgers on Drive survive, the Python
+state does not). Cells guard their prerequisites and will tell you which earlier cell to run
+rather than failing with a bare `NameError`.
+
+Once state is live, individual long cells (6, 8, 10) are the ones safe to re-run on their own.
 """)
 
 code(r"""
@@ -154,6 +163,12 @@ print('dtype', DTYPE)
 code(r"""
 #@title 3 · Checkpoint / ledger helpers (the resumability machinery)
 import json, hashlib, pathlib, os
+
+if 'WORK' not in globals():
+    raise SystemExit('Run cell 1 (Setup) first — it mounts Drive and defines WORK. '
+                     'After a runtime change, start from cell 1: nothing survives.')
+if 'MODEL_ID' not in globals():
+    raise SystemExit('Run cell 2 (Configuration) first — it defines MODEL_ID.')
 
 def _tag():
     # Namespace every artefact by the model actually used. Without this, raising
@@ -240,6 +255,8 @@ else:
 
 code(r"""
 #@title 5 · The game: IPD with randomised neutral action codes
+if 'MODEL' not in globals():
+    raise SystemExit('Run cell 4 (Load the frozen base model) first.')
 import random, re, torch
 
 def codes_for(seed, rnd, seat):
@@ -280,6 +297,8 @@ def build_action_prompt(seat, hist, mapping, delivered_text):
 
 code(r"""
 #@title 6 · L5-A · Scale capability gate (none vs text) — RESUMABLE
+if 'MODEL' not in globals():
+    raise SystemExit('Run cells 1-5 first (setup, config, helpers, model, game).')
 #@markdown Gate: the text effect's 95% CI lower bound must be >= 0.15. If it fails,
 #@markdown a null in L5-C is uninterpretable and you should raise MODEL_ID.
 import numpy as np, torch, math
@@ -370,6 +389,8 @@ if len(kn) == 2:
 
 code(r"""
 #@title 7 · The OuterLink adapter (8.4M params; base model stays frozen)
+if 'MODEL' not in globals():
+    raise SystemExit('Run cell 4 (Load the frozen base model) first.')
 import torch.nn as nn
 
 class OuterLink(nn.Module):
@@ -394,6 +415,8 @@ print('OuterLink', D, '->', D,
 
 code(r"""
 #@title 8 · L5-B · Train the link on NEUTRAL text only — RESUMABLE
+if 'OuterLink' not in globals():
+    raise SystemExit('Run cell 7 (the OuterLink adapter) first.')
 #@markdown Checkpoints every CKPT_EVERY steps. Re-run after a disconnect and it resumes.
 #@markdown **The link never sees the game.**
 import torch, torch.nn.functional as F, json, random
@@ -467,6 +490,8 @@ else:
 
 code(r"""
 #@title 9 · Fidelity gates — token oracle MUST be 0.000
+if 'LINK' not in globals():
+    raise SystemExit('Run cell 8 (link training) first — it defines LINK.')
 #@markdown Matched layout: text tokens and every latent payload occupy the SAME position
 #@markdown after the SAME receiver prefix. If the oracle is not ~0, the harness is broken
 #@markdown and nothing downstream is interpretable.
@@ -515,6 +540,8 @@ print('\nORACLE GATE:', 'PASS' if oracle < 1e-3 else f'FAIL (KL {oracle:.4f}) �
 
 code(r"""
 #@title 10 · L5-C · The predicate transfer test (2x2 + controls) — RESUMABLE
+if 'LINK' not in globals():
+    raise SystemExit('Run cell 8 (link training) first — it defines LINK.')
 #@markdown The headline. Sender is restricted exactly as in Paper 3's P1; the receiver
 #@markdown gets either readable text or a mapped payload at the SAME position.
 import torch, numpy as np
@@ -578,6 +605,8 @@ print('\ndone:', len(res), '/', len(units))
 
 code(r"""
 #@title 11 · Results
+if 'load_results' not in globals():
+    raise SystemExit('Run cell 3 (helpers) first.')
 import collections, math, numpy as np
 res = load_results('l5c_pilot')
 by = collections.defaultdict(list)
