@@ -529,7 +529,7 @@ if 'OuterLink' not in globals():
 #@markdown **The link never sees the game.**
 import torch, torch.nn.functional as F, json, random
 
-CKPT = WORK / 'ckpt' / 'link.pt'
+CKPT = WORK / 'ckpt' / f'{_tag()}__link.pt'
 
 NEUTRAL = [
     "Could you summarise the main argument in two sentences?",
@@ -556,6 +556,14 @@ def build_link(resume=True):
     step = 0
     if resume and CKPT.exists():
         st = torch.load(CKPT, map_location='cuda')
+        ck_d = st['link']['W1.weight'].shape[0]
+        if ck_d != D:
+            #  A checkpoint from another model scale must never be loaded. Namespacing
+            #  should prevent this; the shape check makes it impossible.
+            raise SystemExit(
+                f'Checkpoint at {CKPT} has hidden dim {ck_d}, this model has {D}. '
+                'Refusing to load an adapter trained for a different model. Delete '
+                'that file or check MODEL_ID.')
         link.load_state_dict(st['link']); opt.load_state_dict(st['opt']); step = st['step']
         print(f'resumed from step {step}')
     return link, opt, step
@@ -636,10 +644,10 @@ if not stage_done('l5b_fidelity'):
         kl, ag = fidelity(fn)
         rows[k] = dict(kl=kl, top1=ag)
         print(f'{k:14s} KL {kl:.4f}  top-1 {ag:.3f}')
-    (WORK / 'results' / 'fidelity.json').write_text(json.dumps(rows, indent=2))
+    (WORK / 'results' / f'{_tag()}__fidelity.json').write_text(json.dumps(rows, indent=2))
     mark_done('l5b_fidelity')
 else:
-    rows = json.loads((WORK / 'results' / 'fidelity.json').read_text())
+    rows = json.loads((WORK / 'results' / f'{_tag()}__fidelity.json').read_text())
     print(json.dumps(rows, indent=2))
 
 oracle = rows['token oracle']['kl']
@@ -762,9 +770,9 @@ contrast CI here excludes zero.''')
 md(r"""
 ## Provenance
 
-- All raw per-match records are in `WORK/results/*.jsonl` (one JSON object per match, appended
+- All raw per-match records are in `WORK/results/<model>__*.jsonl` (one JSON object per match, appended
   atomically). Copy them off Drive to keep them with the paper artifact.
-- `WORK/ckpt/link.pt` holds the trained adapter plus optimizer state.
+- `WORK/ckpt/<model>__link.pt` holds the trained adapter plus optimizer state.
 - Re-running any cell is safe and idempotent; delete the corresponding `*.done` marker to force
   a stage to recompute.
 
