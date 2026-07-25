@@ -174,7 +174,9 @@ def _tag():
     # Namespace every artefact by the model actually used. Without this, raising
     # MODEL_ID would SKIP already-recorded units and report the old model's numbers
     # under the new model's name -- a silent wrong answer.
-    return MODEL_ID.split('/')[-1].replace('.', '')
+    # SCAFFOLD version is part of the namespace: a change to the game or channel
+    # semantics must invalidate prior ledgers, not silently reuse them.
+    return f"{MODEL_ID.split('/')[-1].replace('.', '')}_s2"
 
 def _ledger(name):
     return WORK / 'results' / f'{_tag()}__{name}.jsonl'
@@ -259,9 +261,15 @@ if 'MODEL' not in globals():
     raise SystemExit('Run cell 4 (Load the frozen base model) first.')
 import random, re, torch
 
-def codes_for(seed, rnd, seat):
-    '''Deterministic randomised mapping of neutral codes -> actions.'''
-    r = random.Random(f'{seed}|{rnd}|{seat}')
+def codes_for(seed, rnd):
+    '''Randomised code -> action mapping, SHARED by both agents in a round.
+
+    Randomising per round removes the semantic label prior (the point of neutral
+    codes). It must NOT be randomised per seat: a message that names a code would
+    then mean the opposite thing to its recipient in ~half of all rounds, which
+    silently destroys the channel being measured.
+    '''
+    r = random.Random(f'{seed}|{rnd}')
     labels = ['A', 'B']
     r.shuffle(labels)
     return {labels[0]: 'C', labels[1]: 'D'}   # code -> action
@@ -327,10 +335,10 @@ def play_match(seed, arm, rounds=ROUNDS):
         acts, msgs = {}, {}
         if arm == 'text':
             for s in ('A', 'B'):
-                m = codes_for(seed, rnd, s)
+                m = codes_for(seed, rnd)
                 msgs[s] = gen_message(s, hist, m, PROPOSAL_INSTR)
         for s in ('A', 'B'):
-            m = codes_for(seed, rnd, s)
+            m = codes_for(seed, rnd)
             code_ids = [TOK.encode(c, add_special_tokens=False)[0] for c in m]
             peer = 'B' if s == 'A' else 'A'
             prompt = build_action_prompt(s, hist, m, msgs.get(peer))
@@ -559,7 +567,7 @@ def play_match_l5c(seed, arm, rounds=ROUNDS):
         payloads, texts = {}, {}
         if arm != 'none':
             for s in ('A', 'B'):
-                m = codes_for(seed, rnd, s)
+                m = codes_for(seed, rnd)
                 msg = gen_message(s, hist, m, instr)
                 texts[s] = msg
                 if arm.startswith('latent'):
@@ -572,7 +580,7 @@ def play_match_l5c(seed, arm, rounds=ROUNDS):
                         payloads[s] = LINK(h.float())
         acts = {}
         for s in ('A', 'B'):
-            m = codes_for(seed, rnd, s)
+            m = codes_for(seed, rnd)
             code_ids = [TOK.encode(c, add_special_tokens=False)[0] for c in m]
             peer = 'B' if s == 'A' else 'A'
             if arm.startswith('latent') and peer in payloads:
