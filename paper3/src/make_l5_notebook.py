@@ -176,7 +176,7 @@ def _tag():
     # under the new model's name -- a silent wrong answer.
     # SCAFFOLD version is part of the namespace: a change to the game or channel
     # semantics must invalidate prior ledgers, not silently reuse them.
-    return f"{MODEL_ID.split('/')[-1].replace('.', '')}_s3"
+    return f"{MODEL_ID.split('/')[-1].replace('.', '')}_s4"
 
 def _ledger(name):
     return WORK / 'results' / f'{_tag()}__{name}.jsonl'
@@ -270,10 +270,12 @@ def present_order(seed, rnd, mapping):
     #  Order the options are OFFERED in, drawn independently of which is cooperative.
     #  Without this the cooperative code is always named first, and a model with a
     #  primacy bias scores as a cooperator without understanding the game at all.
-    r = random.Random(f'order|{seed}|{rnd}')
+    #  md5 the key: a bare string seed with a 2-element shuffle is badly imbalanced at
+    #  small n (14/18 in one self-test sample), which silently confounds order with action.
+    import hashlib
+    h = int(hashlib.md5(f'order|{seed}|{rnd}'.encode()).hexdigest(), 16)
     ks = list(mapping.keys())
-    r.shuffle(ks)
-    return ks
+    return ks if h % 2 == 0 else ks[::-1]
 
 SYS = ("You are playing a repeated game against another agent. Each round you both "
        "choose one option at the same time, and both of you score points based on the "
@@ -305,6 +307,13 @@ def history_block(hist, seat):
         out.append(f"round {i}: you chose {mine}, they chose {theirs}, you scored {my_score}")
     return "\n".join(out)
 
+def chat_prompt(user_text):
+    #  Qwen2.5-*-Instruct expects ChatML. Prompting it as raw completion degrades it to
+    #  shallow heuristics (it echoed the last-listed letter at 0.92 confidence).
+    return TOK.apply_chat_template(
+        [{"role": "system", "content": SYS}, {"role": "user", "content": user_text}],
+        tokenize=False, add_generation_prompt=True)
+
 @torch.no_grad()
 def action_logprobs(prefix_ids, code_ids):
     '''Normalised likelihood over the two neutral action codes.'''
@@ -318,9 +327,10 @@ def build_action_prompt(seat, hist, mapping, delivered_text, seed, rnd):
     msg = ""
     if delivered_text:
         msg = f"\nThe other agent sent you this message:\n\"{delivered_text}\"\n"
-    return (f"{SYS}\n\n{payoff_block(mapping)}\n\n"
+    body = (f"{payoff_block(mapping)}\n\n"
             f"History:\n{history_block(hist, seat)}\n{msg}\n"
-            f"Reply with exactly one letter, {order[0]} or {order[1]}.\nAnswer:")
+            f"Choose {order[0]} or {order[1]}. Reply with that single letter only.")
+    return chat_prompt(body)
 """)
 
 code(r"""
@@ -333,6 +343,7 @@ if 'MODEL' not in globals():
 import torch, collections, random as _r
 
 first_pick, coop_nomsg, coop_msg, confs = collections.Counter(), [], [], []
+coop_first = []
 for seed in range(6):
     for rnd in range(3):
         m = codes_for(seed, rnd)
@@ -349,6 +360,7 @@ for seed in range(6):
             confs.append(float(p_.max()))
             if msg is None:
                 first_pick['first' if pick == order[0] else 'second'] += 1
+                coop_first.append(1.0 if order[0] == coop_code else 0.0)
 
 import numpy as np
 pc_no, pc_msg = float(np.mean(coop_nomsg)), float(np.mean(coop_msg))
@@ -358,6 +370,7 @@ print(f'P(cooperate) no message      : {pc_no:.2f}   <- PD: should be LOW (defec
 print(f'P(cooperate) cooperative ask : {pc_msg:.2f}   <- should be HIGHER than above')
 print(f'mean confidence              : {conf:.2f}   <- >0.6 means the choice is not a coin flip')
 print(f'positional bias              : {bias:.2f}   <- <0.5 means order is not driving the pick')
+print(f'  (cooperative code shown first in {np.mean(coop_first):.2f} of samples — should be ~0.5)')
 
 fails = []
 if conf < 0.60:            fails.append('choice is near-random: the model is not reading the game')
@@ -389,11 +402,11 @@ INTENTION_INSTR = ('Write ONE short sentence stating only your own intended opti
 def gen_message(seat, hist, mapping, instr, seed, rnd):
     codes = list(mapping.keys())
     order = present_order(seed, rnd, mapping)
-    prompt = (f"{SYS}\n\n{payoff_block(mapping)}\n\n"
-              f"History:\n{history_block(hist, seat)}\n\n"
-              f"You may send one short message to the other agent before you both "
-              f"choose. Your options this round are {order[0]} and {order[1]}.\n"
-              f"{instr}\nMessage:")
+    body = (f"{payoff_block(mapping)}\n\n"
+            f"History:\n{history_block(hist, seat)}\n\n"
+            f"You may send one short message to the other agent before you both "
+            f"choose. Your options this round are {order[0]} and {order[1]}.\n{instr}")
+    prompt = chat_prompt(body)
     ids = TOK(prompt, return_tensors='pt').input_ids.cuda()
     out = MODEL.generate(ids, max_new_tokens=24, do_sample=True, temperature=0.7,
                          pad_token_id=TOK.eos_token_id)
