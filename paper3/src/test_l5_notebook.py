@@ -93,9 +93,11 @@ def make_scorer(mode, prompts):
         if mode == "blind":
             return _FakeTensor([0.9, 0.1])
         p_coop = 0.85
-        if "they 50" in text or "you 50" in text:
-            p_coop = 0.20
-        if "going to choose" in text:
+        if "you 50" in text:            # temptation raised 10x, dilemma intact
+            p_coop = 0.55
+        if "you 10, they 10" in text:   # cooperation strictly dominated everywhere
+            p_coop = 0.10
+        if "going to choose" in text:   # peer announced defection
             p_coop = 0.25
         return _FakeTensor([p_coop, 1 - p_coop])
     return _scorer

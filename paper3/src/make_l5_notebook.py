@@ -176,7 +176,7 @@ def _tag():
     # under the new model's name -- a silent wrong answer.
     # SCAFFOLD version is part of the namespace: a change to the game or channel
     # semantics must invalidate prior ledgers, not silently reuse them.
-    return f"{MODEL_ID.split('/')[-1].replace('.', '')}_s5"
+    return f"{MODEL_ID.split('/')[-1].replace('.', '')}_s6"
 
 def _ledger(name):
     return WORK / 'results' / f'{_tag()}__{name}.jsonl'
@@ -345,9 +345,14 @@ if 'MODEL' not in globals():
 #@markdown is the phenomenon under study, not a bug.
 import torch, collections, numpy as np
 
-GREEDY = {('C','C'): (3,3), ('C','D'): (0,50), ('D','C'): (50,0), ('D','D'): (1,1)}
+#  Two probes of increasing severity. GREEDY keeps the dilemma and only raises the
+#  temptation 10x. DOMINANT removes the dilemma entirely: one option pays strictly more
+#  in every cell, so ANY agent that reads the table must switch. If cooperation does not
+#  move even there, the payoffs are not being read at all and the task is not a game.
+GREEDY   = {('C','C'): (3,3), ('C','D'): (0,50), ('D','C'): (50,0), ('D','D'): (1,1)}
+DOMINANT = {('C','C'): (0,0), ('C','D'): (0,10), ('D','C'): (10,0), ('D','D'): (10,10)}
 
-def _p_coop(msg=None, table=None, n_seed=8):
+def _p_coop(msg=None, table=None, n_seed=12):
     picks, confs, bias, first = [], [], collections.Counter(), []
     for seed in range(n_seed):
         for rnd in range(2):
@@ -369,22 +374,24 @@ def _p_coop(msg=None, table=None, n_seed=8):
 
 base, conf, bias, coop_first = _p_coop()
 greedy, _, _, _ = _p_coop(table=GREEDY)
+dominant, _, _, _ = _p_coop(table=DOMINANT)
 p_coop_msg, _, _, _ = _p_coop(msg="Let us both choose <COOP>. We both do better that way.")
 p_def_msg, _, _, _  = _p_coop(msg="I am going to choose <DEF> this round.")
 
 print(f'P(cooperate) baseline PD      : {base:.2f}')
-print(f'P(cooperate) defection-rich   : {greedy:.2f}   <- should be LOWER: reads payoffs')
+print(f'P(cooperate) defection-rich   : {greedy:.2f}   <- temptation x10, dilemma intact')
+print(f'P(cooperate) strictly dominated: {dominant:.2f}   <- MUST be LOWER: no dilemma left')
 print(f'P(cooperate) cooperative ask  : {p_coop_msg:.2f}')
 print(f'P(cooperate) defection ask    : {p_def_msg:.2f}   <- should be LOWER: reads messages')
 print(f'mean confidence               : {conf:.2f}   <- >0.6: not a coin flip')
-print(f'positional bias               : {bias:.2f}   <- <0.5: order not driving the pick')
+print(f'positional bias               : {bias:.2f}   <- <0.65: order not dominating the pick')
 print(f'cooperative code shown first  : {coop_first:.2f}   <- ~0.5: sampler balanced')
 
 fails = []
 if conf < 0.60:                     fails.append('choice is near-random: the model is not reading the prompt')
-if bias >= 0.50:                    fails.append('pick is determined by presentation order, not content')
+if bias >= 0.65:                    fails.append('pick is largely determined by presentation order, not content')
 if not 0.30 <= coop_first <= 0.70:  fails.append('presentation-order sampler is imbalanced')
-if base - greedy < 0.10:            fails.append('PAYOFF-BLIND: making defection far more lucrative did not reduce cooperation')
+if base - dominant < 0.15:          fails.append('PAYOFF-BLIND: cooperation did not fall even when it is strictly dominated in every cell')
 if p_coop_msg - p_def_msg < 0.10:   fails.append('MESSAGE-BLIND: a cooperative vs defection message produced the same choice')
 print()
 if fails:
