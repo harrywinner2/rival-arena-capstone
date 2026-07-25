@@ -176,7 +176,7 @@ def _tag():
     # under the new model's name -- a silent wrong answer.
     # SCAFFOLD version is part of the namespace: a change to the game or channel
     # semantics must invalidate prior ledgers, not silently reuse them.
-    return f"{MODEL_ID.split('/')[-1].replace('.', '')}_s2"
+    return f"{MODEL_ID.split('/')[-1].replace('.', '')}_s3"
 
 def _ledger(name):
     return WORK / 'results' / f'{_tag()}__{name}.jsonl'
@@ -257,33 +257,52 @@ else:
 
 code(r"""
 #@title 5 · The game: IPD with randomised neutral action codes
-if 'MODEL' not in globals():
-    raise SystemExit('Run cell 4 (Load the frozen base model) first.')
 import random, re, torch
 
 def codes_for(seed, rnd):
-    '''Randomised code -> action mapping, SHARED by both agents in a round.
-
-    Randomising per round removes the semantic label prior (the point of neutral
-    codes). It must NOT be randomised per seat: a message that names a code would
-    then mean the opposite thing to its recipient in ~half of all rounds, which
-    silently destroys the channel being measured.
-    '''
+    '''Randomised code -> action mapping, SHARED by both agents in a round.'''
     r = random.Random(f'{seed}|{rnd}')
     labels = ['A', 'B']
     r.shuffle(labels)
-    return {labels[0]: 'C', labels[1]: 'D'}   # code -> action
+    return {labels[0]: 'C', labels[1]: 'D'}
 
-SYS = ("You are an agent playing a repeated two-player game against another agent. "
-       "Each round you pick one option. Your goal is to maximise your own total score.")
+def present_order(seed, rnd, mapping):
+    #  Order the options are OFFERED in, drawn independently of which is cooperative.
+    #  Without this the cooperative code is always named first, and a model with a
+    #  primacy bias scores as a cooperator without understanding the game at all.
+    r = random.Random(f'order|{seed}|{rnd}')
+    ks = list(mapping.keys())
+    r.shuffle(ks)
+    return ks
+
+SYS = ("You are playing a repeated game against another agent. Each round you both "
+       "choose one option at the same time, and both of you score points based on the "
+       "combination of choices. Your goal is to maximise YOUR OWN total score across "
+       "all rounds.")
+
+def payoff_block(mapping):
+    #  The payoff matrix, stated in THIS round's neutral codes. This is what makes the
+    #  task a Prisoner's Dilemma rather than a choice between two undefined letters.
+    #  Omitting it does not make the game harder -- it makes it a coin flip, and every
+    #  downstream measurement meaningless.
+    inv = {v: k for k, v in mapping.items()}
+    c, d = inv['C'], inv['D']
+    return ("Scoring this round:\n"
+            f"  you {c}, they {c}  ->  you 3, they 3\n"
+            f"  you {c}, they {d}  ->  you 0, they 5\n"
+            f"  you {d}, they {c}  ->  you 5, they 0\n"
+            f"  you {d}, they {d}  ->  you 1, they 1")
 
 def history_block(hist, seat):
     if not hist:
         return "No rounds have been played yet."
+    peer = 'B' if seat == 'A' else 'A'
     out = []
     for i, h in enumerate(hist[-6:]):
-        me, you = h[seat], h['B' if seat == 'A' else 'A']
-        out.append(f"round {i}: you chose {me}, they chose {you}")
+        inv = {v: k for k, v in h['map'].items()}
+        mine, theirs = inv[h[seat]], inv[h[peer]]
+        my_score = PAYOFF[(h[seat], h[peer])][0]
+        out.append(f"round {i}: you chose {mine}, they chose {theirs}, you scored {my_score}")
     return "\n".join(out)
 
 @torch.no_grad()
@@ -294,13 +313,62 @@ def action_logprobs(prefix_ids, code_ids):
     sel = torch.stack([logits[c] for c in code_ids]).float()
     return torch.softmax(sel, dim=-1)
 
-def build_action_prompt(seat, hist, mapping, delivered_text):
-    codes = list(mapping.keys())
+def build_action_prompt(seat, hist, mapping, delivered_text, seed, rnd):
+    order = present_order(seed, rnd, mapping)
     msg = ""
     if delivered_text:
         msg = f"\nThe other agent sent you this message:\n\"{delivered_text}\"\n"
-    return (f"{SYS}\n\nHistory:\n{history_block(hist, seat)}\n{msg}\n"
-            f"Reply with exactly one letter, {codes[0]} or {codes[1]}.\nAnswer:")
+    return (f"{SYS}\n\n{payoff_block(mapping)}\n\n"
+            f"History:\n{history_block(hist, seat)}\n{msg}\n"
+            f"Reply with exactly one letter, {order[0]} or {order[1]}.\nAnswer:")
+""")
+
+code(r"""
+#@title 5b · Scaffold self-test — MUST pass before the gate
+if 'MODEL' not in globals():
+    raise SystemExit('Run cells 1-5 first.')
+#@markdown Verifies the agents can actually SEE the game. Three earlier runs were
+#@markdown wasted because the payoff matrix was never shown and the cooperative code
+#@markdown was always listed first, so "choice" was a coin flip with a primacy bias.
+import torch, collections, random as _r
+
+first_pick, coop_nomsg, coop_msg, confs = collections.Counter(), [], [], []
+for seed in range(6):
+    for rnd in range(3):
+        m = codes_for(seed, rnd)
+        order = present_order(seed, rnd, m)
+        code_ids = [TOK.encode(c, add_special_tokens=False)[0] for c in m]
+        inv = {v: k for k, v in m.items()}
+        for msg, bucket in [(None, coop_nomsg),
+                            ("Let us both choose " + inv['C'] + ".", coop_msg)]:
+            ids = TOK(build_action_prompt('A', [], m, msg, seed, rnd),
+                      return_tensors='pt').input_ids.cuda()
+            p_ = action_logprobs(ids, code_ids)
+            pick = list(m.keys())[int(p_.argmax())]
+            bucket.append(1.0 if m[pick] == 'C' else 0.0)
+            confs.append(float(p_.max()))
+            if msg is None:
+                first_pick['first' if pick == order[0] else 'second'] += 1
+
+import numpy as np
+pc_no, pc_msg = float(np.mean(coop_nomsg)), float(np.mean(coop_msg))
+conf = float(np.mean(confs))
+bias = abs(first_pick['first'] - first_pick['second']) / max(sum(first_pick.values()), 1)
+print(f'P(cooperate) no message      : {pc_no:.2f}   <- PD: should be LOW (defection dominates)')
+print(f'P(cooperate) cooperative ask : {pc_msg:.2f}   <- should be HIGHER than above')
+print(f'mean confidence              : {conf:.2f}   <- >0.6 means the choice is not a coin flip')
+print(f'positional bias              : {bias:.2f}   <- <0.5 means order is not driving the pick')
+
+fails = []
+if conf < 0.60:            fails.append('choice is near-random: the model is not reading the game')
+if bias >= 0.50:           fails.append('pick is determined by presentation order, not payoffs')
+if pc_no > 0.70:           fails.append('cooperates by default: defection does not dominate as it must in a PD')
+if pc_msg <= pc_no:        fails.append('a cooperative proposal does not raise cooperation: channel is dead')
+print()
+if fails:
+    for f in fails: print('  FAIL:', f)
+    raise SystemExit('SCAFFOLD SELF-TEST FAILED — fix the game before spending on the gate.')
+print('SELF-TEST PASS — the agents can see the game and respond to messages.')
 """)
 
 code(r"""
@@ -318,11 +386,14 @@ INTENTION_INSTR = ('Write ONE short sentence stating only your own intended opti
                    'agent and do not use "we", "us", "let\'s", "both" or "together".')
 
 @torch.no_grad()
-def gen_message(seat, hist, mapping, instr):
+def gen_message(seat, hist, mapping, instr, seed, rnd):
     codes = list(mapping.keys())
-    prompt = (f"{SYS}\n\nHistory:\n{history_block(hist, seat)}\n\n"
-              f"You may send one short message to the other agent. Your options this "
-              f"round are {codes[0]} and {codes[1]}.\n{instr}\nMessage:")
+    order = present_order(seed, rnd, mapping)
+    prompt = (f"{SYS}\n\n{payoff_block(mapping)}\n\n"
+              f"History:\n{history_block(hist, seat)}\n\n"
+              f"You may send one short message to the other agent before you both "
+              f"choose. Your options this round are {order[0]} and {order[1]}.\n"
+              f"{instr}\nMessage:")
     ids = TOK(prompt, return_tensors='pt').input_ids.cuda()
     out = MODEL.generate(ids, max_new_tokens=24, do_sample=True, temperature=0.7,
                          pad_token_id=TOK.eos_token_id)
@@ -336,17 +407,17 @@ def play_match(seed, arm, rounds=ROUNDS):
         if arm == 'text':
             for s in ('A', 'B'):
                 m = codes_for(seed, rnd)
-                msgs[s] = gen_message(s, hist, m, PROPOSAL_INSTR)
+                msgs[s] = gen_message(s, hist, m, PROPOSAL_INSTR, seed, rnd)
         for s in ('A', 'B'):
             m = codes_for(seed, rnd)
             code_ids = [TOK.encode(c, add_special_tokens=False)[0] for c in m]
             peer = 'B' if s == 'A' else 'A'
-            prompt = build_action_prompt(s, hist, m, msgs.get(peer))
+            prompt = build_action_prompt(s, hist, m, msgs.get(peer), seed, rnd)
             ids = TOK(prompt, return_tensors='pt').input_ids.cuda()
             p = action_logprobs(ids, code_ids)
             pick = list(m.keys())[int(torch.multinomial(p, 1).item())]
             acts[s] = m[pick]
-        hist.append(acts)
+        hist.append({**acts, 'map': m})
         coop.append(1.0 if acts['A'] == 'C' and acts['B'] == 'C' else 0.0)
         if rng.random() > CONT_PROB:
             break
@@ -568,7 +639,7 @@ def play_match_l5c(seed, arm, rounds=ROUNDS):
         if arm != 'none':
             for s in ('A', 'B'):
                 m = codes_for(seed, rnd)
-                msg = gen_message(s, hist, m, instr)
+                msg = gen_message(s, hist, m, instr, seed, rnd)
                 texts[s] = msg
                 if arm.startswith('latent'):
                     h, _ = sender_states(msg)
@@ -584,19 +655,19 @@ def play_match_l5c(seed, arm, rounds=ROUNDS):
             code_ids = [TOK.encode(c, add_special_tokens=False)[0] for c in m]
             peer = 'B' if s == 'A' else 'A'
             if arm.startswith('latent') and peer in payloads:
-                base = build_action_prompt(s, hist, m, None)
+                base = build_action_prompt(s, hist, m, None, seed, rnd)
                 ids = TOK(base, return_tensors='pt').input_ids.cuda()
                 e = torch.cat([emb(ids), payloads[peer].to(emb(ids).dtype)], 1)
                 logits = MODEL(inputs_embeds=e).logits[0, -1]
             else:
-                prompt = build_action_prompt(s, hist, m, texts.get(peer))
+                prompt = build_action_prompt(s, hist, m, texts.get(peer), seed, rnd)
                 ids = TOK(prompt, return_tensors='pt').input_ids.cuda()
                 logits = MODEL(input_ids=ids).logits[0, -1]
             sel = torch.stack([logits[c] for c in code_ids]).float()
             p = torch.softmax(sel, -1)
             pick = list(m.keys())[int(torch.multinomial(p, 1).item())]
             acts[s] = m[pick]
-        hist.append(acts)
+        hist.append({**acts, 'map': m})
         coop.append(1.0 if acts['A'] == 'C' and acts['B'] == 'C' else 0.0)
         if rng.random() > CONT_PROB:
             break
