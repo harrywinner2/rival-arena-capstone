@@ -1,0 +1,97 @@
+\section{Introduction}
+\label{sec:intro}
+
+Two autonomous agents serving different principals, given a channel, coordinate in
+ways that harm the principal who deployed them. That much is established: in repeated
+social dilemmas they cooperate~\cite{akata2025repeated,madmoun2025communication}, and
+in pricing games they reach supracompetitive prices without being
+told to~\cite{fish2024algorithmic,calvano2020ai}. Our own prior
+work~\cite{fezeu2026gamesec,fezeu2026zenodo} isolated the interface affordance
+responsible, running a factorial ladder from silence through a fixed menu signal to
+free text, and concluded that \emph{semantic bandwidth}---how much content an agent
+can convey---is the dominant lever.
+
+This paper revisits that conclusion and finds it too coarse. The ladder result is
+robust; the mechanistic gloss placed on it is not. Re-analysing the released corpus,
+we find that none of the strategic content the bandwidth account points to is doing
+any work. The enforcement machinery is present in the transcripts and idle. Message
+length predicts nothing, and where it trends it trends the wrong way. What actually
+separates the arms is far narrower and far cheaper to state:
+
+\begin{quote}
+\textbf{The coordinating predicate.} Principal-harming coordination requires only that
+the channel admit a \emph{joint proposal}---a first-person-plural commissive naming an
+action for both parties. A channel that admits only an \emph{own intention}---a
+first-person-singular commissive---does not produce it, regardless of bandwidth,
+authorship, per-round availability, or transmission fidelity.
+\end{quote}
+
+This is a threshold, not a dose. Above the floor, what is said stops predicting what
+happens. Below it, no amount of channel capacity substitutes.
+
+\paragraph{Why this matters for a defender.}
+The two controls a security-minded operator reaches for first are \emph{restrict the
+channel} and \emph{watch the channel}. The predicate explains why both underperform.
+Restricting \emph{capacity} fails because a proposal is cheap---one $60$-character
+text suffices. Watching \emph{content} fails because content above the floor is not
+predictive, so there is little signal to watch. What remains is narrower and more
+actionable: intervene on the \emph{form} of the message, or on the \emph{window} in
+which the trajectory is set.
+
+\paragraph{Contributions.}
+\begin{enumerate}[leftmargin=1.4em,itemsep=2pt,topsep=2pt]
+\item \textbf{A negative mechanistic result on the released corpus} (\S\ref{sec:reanalysis}):
+contingent punishment rules are rare and non-predictive; no measured content class
+survives a temporally-ordered mediation design; message length trends against the
+bandwidth account.
+\item \textbf{A pre-registered predicate, and its refutation by our own control arm}
+(\S\ref{sec:model}, \S\ref{sec:p1}). The length-matched test returned the predicted
+contrast and a falsifier in the same design; we report the hypothesis as refuted and
+give the weaker account that survives---the interface acts on what the agent
+\emph{decides}, not on what its peer \emph{learns}.
+\item \textbf{Two defenses} (\S\ref{sec:defense}): a cost-optimal monitor operating
+point with an explicit statement of when the detector is not worth running, and
+opening-window suppression.
+\item \textbf{A cross-domain replication} of the instruction-literalism boundary
+(\S\ref{sec:p2}), answering the objection that it rested on one task family.
+\item \textbf{Three corrections to our own prior work}: the menu-signal result reverses
+sign between model scales (\S\ref{sec:p1}); the mechanism behind the
+instruction-literalism boundary is verification failure rather than deception
+(\S\ref{sec:p2}); and communication is \emph{not} the dominant attack surface but the
+largest of several comparable levers (\S\ref{sec:p3}).
+\item \textbf{An account of a prior negative result} (\S\ref{sec:latent}): a learned
+continuous channel transmits a distribution without reframing the sender's decision,
+which is why high transmission fidelity bought no coordination.
+\item \textbf{A methods contribution} (\S\ref{sec:methods}): a deployment-matched
+fidelity protocol with an exact-token oracle, and a worked retraction of a
+plausible-looking measurement artifact of our own.
+\end{enumerate}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.94\textwidth]{figures/f4_prereg_ledger.pdf}
+\caption{\textbf{Every pre-registered prediction in this paper, and how it came out.}
+Each was fixed, with a falsifier, before the run that tested it. Five were refuted by
+our own data---three of them claims from our prior work, two of them hypotheses of
+this paper. The account in \S\ref{sec:model} is what survived.}
+\label{fig:ledger}
+\end{figure}
+
+\paragraph{Scope of claims.}
+Two kinds of evidence appear here and we keep them apart. \S\ref{sec:reanalysis} is a
+re-analysis of a large released corpus: it establishes, with substantial $n$, what does
+\emph{not} explain the channel effect, and it is observational---it cannot by itself
+establish that the proposal form is causal, because at the arm level that form is
+confounded with message length. \S\ref{sec:p1}--\S\ref{sec:p3} supply the
+manipulations that break that confound and rank the predicate against competing
+levers, each pre-registered before any seed was run. Readers should treat the negative
+results as strong and the positive predicate as resting on the experiments.
+
+\paragraph{Relation to prior work.}
+The affordance ladder, the collusion result, the monitor characterisation and the
+alignment wave are prior work~\cite{fezeu2026gamesec,fezeu2026zenodo} and are not
+re-claimed here. This paper contributes the mechanism, the defenses, and the
+replications. Where we correct the earlier reading we say so explicitly
+(\S\ref{sec:reanalysis}, \S\ref{sec:methods}).
+
+% ======================================================================

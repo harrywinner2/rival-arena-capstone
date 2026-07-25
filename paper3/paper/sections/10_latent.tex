@@ -1,0 +1,134 @@
+\section{A Non-Text Channel, and a Prior Negative Result Explained}
+\label{sec:latent}
+
+A natural worry is that agents evade text-based oversight by moving to a channel the
+principal cannot read. Prior follow-up work trained an $8.39$M-parameter residual
+adapter mapping a sender's last-layer hidden states into a receiver's input-embedding
+space, with both base models frozen and the link trained only on neutral assistance
+data---never on game, reward, or collusion data. After repairing a receiver-layout
+confound (\S\ref{sec:methods}), the final adapter reproduced held-out
+text-conditioned action distributions better than shuffled, random, and zero controls
+on fresh deployment snapshots (KL $0.138$ vs $0.197$/$0.255$/$0.349$; token oracle
+$0.000$), with paired intervals excluding zero. Behaviourally it did nothing: trained
+$-$ shuffled $= 0.000$ $[-0.075,+0.063]$, trained $-$ text $= -0.100$.
+
+That null was reported as an isolated negative. The threshold model explains it. The
+link was trained to reproduce the receiver's \emph{action distribution}---it transmits
+\emph{what I will do next}, which is precisely an own intention. Under
+\S\ref{sec:model} it should not coordinate, and it did not. A high-capacity,
+unmonitorable channel that faithfully carries decision-relevant information buys an
+attacker nothing, because fidelity of intention transfer is not the coordinating
+property.
+
+We state the scope carefully: this is evidence that transmitting intentions
+faithfully is insufficient, \emph{not} that latent channels are safe. A link trained
+to carry proposals---which our methodology deliberately forbade---may well behave
+differently, and that is the experiment we specify next.
+
+\paragraph{The transfer test, specified and released but not run.}
+The revised account predicts something sharper than the predicate did. If the channel
+works by changing what the \emph{sender} resolves to do, then a link that transports the
+sender's hidden states should carry the effect only insofar as the sender was already
+reframed---so restricting the sender's generation should matter, and the transport
+medium should not. The design crosses text/latent $\times$ proposal/intention with
+shuffled, zero and no-channel controls, gated on an exact-token oracle reading
+$0.000$ KL and on a scale check, with the link trained on neutral text only.
+
+Three outcomes are distinguishable: the framing effect survives translation (latent
+channels inherit the attack surface, and text-based monitoring is evadable); it is
+text-specific (which explains the L4 null and bounds the attack); or the link is a
+plain text substitute.
+
+\paragraph{Pilot result: the framing effect is text-specific.}
+We ran the design at Qwen2.5-14B on a single A100 ($12$ seeds/arm, $84$ matches).
+The scaffold cleared its self-test, and the capability gate passed decisively
+(no-channel $0.167$ $[0.07,0.36]$ vs.\ text $0.750$ $[0.55,0.88]$; difference
+$+0.583$, lower bound $+0.307$). The link trained to convergence on neutral text
+(loss $0.331\to0.013$) and reproduced the teacher's next-token argmax
+\emph{perfectly} on held-out neutral messages (Table~\ref{tab:l5fid}).
+
+\begin{table}[t]
+\centering
+\caption{\textbf{L5 fidelity gates, Qwen2.5-14B, held-out neutral messages.} The
+exact-token oracle validates the matched layout; the trained link is
+indistinguishable from reading the text at the token level.}
+\label{tab:l5fid}
+\small
+\begin{tabular}{lrr}
+\toprule
+payload & KL & top-1 agreement \\
+\midrule
+token oracle & $-0.0000$ & $1.000$ \\
+trained      & $0.019$   & $1.000$ \\
+shuffled     & $6.440$   & $0.109$ \\
+random       & $8.019$   & $0.000$ \\
+zero         & $18.101$  & $0.000$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Behaviourally the framing effect appears in text and \emph{not} in the latent channel
+(Table~\ref{tab:l5c}). Over text, restricting the sender to joint proposals rather than
+own intentions raises lock-in by $+0.417$ $[+0.087,+0.680]$---an independent
+replication of P1's primary contrast in a different scaffold, different prompt
+structure, and different round count. Passed through the link, the same manipulation
+moves nothing: $+0.083$ $[-0.169,+0.354]$, and \texttt{latent\_proposal} is
+indistinguishable from both its shuffled and its zero controls.
+
+\begin{table}[t]
+\centering
+\caption{\textbf{L5-C pilot, $12$ seeds/arm.} The sender-side manipulation is
+identical across the text and latent rows; only the transport differs.}
+\label{tab:l5c}
+\small
+\begin{tabular}{lccr}
+\toprule
+arm & lock-in & Wilson 95\% CI & mean $C$ \\
+\midrule
+none               & 0.000 & [0.00, 0.24] & 0.446 \\
+\textbf{text\_proposal}  & \textbf{0.417} & [0.19, 0.68] & 0.792 \\
+text\_intention     & 0.000 & [0.00, 0.24] & 0.597 \\
+latent\_proposal    & 0.083 & [0.01, 0.35] & 0.534 \\
+latent\_intention   & 0.000 & [0.00, 0.24] & 0.520 \\
+latent\_shuffled    & 0.000 & [0.00, 0.24] & 0.189 \\
+latent\_zero        & 0.000 & [0.00, 0.24] & 0.309 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/f3_latent_transfer.pdf}
+\caption{\textbf{Token-level fidelity does not imply behavioural transfer.} Left: on
+held-out neutral messages the trained link reproduces the teacher's next-token argmax
+perfectly, as does the exact-token oracle that validates the layout. Right: the
+sender-side manipulation is identical across the text and latent arms, and only the
+text arms separate. Fidelity is measured on neutral text, which bounds the reading
+(see below).}
+\label{fig:l5}
+\end{figure}
+
+\paragraph{The limitation that bounds this reading.}
+The fidelity in Table~\ref{tab:l5fid} is measured on \emph{neutral} messages, and
+\S\ref{sec:protocol} is precisely the finding that neutral fidelity does not predict
+deployment fidelity---the original L4 adapter passed a neutral gate at KL $0.649$ and
+then failed in deployment, as did exact token embeddings. This pilot does not
+implement the deployment-matched gate that finding demands. So two explanations
+remain open: the framing effect is genuinely text-specific, or the link is faithful on
+neutral text and unfaithful on game messages, which is the L4 failure repeating. We
+cannot separate them here, and we do not claim to.
+
+What the pilot does establish is narrower and still useful: a channel that reproduces
+the text-conditioned next-token distribution \emph{perfectly} on the distribution it
+was trained for does not thereby transport the behavioural effect that the text
+itself produces. Token-level fidelity and behavioural transfer are not the same
+property. That is the same separation the L4 work reached from the other direction,
+and it holds here at $14$B with a link an order of magnitude more faithful.
+
+\paragraph{Scope.}
+Twelve seeds give intervals roughly $\pm0.24$ wide. The text contrast clears zero and
+is promotable to a $40$-seed confirmatory run; \textbf{the latent nulls are
+under-powered and must not be read as evidence that latent channels are safe}. The
+executed notebook is released with the artifact.
+
+% ======================================================================

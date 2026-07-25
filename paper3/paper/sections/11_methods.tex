@@ -1,0 +1,121 @@
+\section{Methods, and a Retraction}
+\label{sec:methods}
+
+\subsection{A measurement artifact we caught}
+\label{sec:retraction}
+
+Our first contingent-punishment detector counted cooperative reciprocity---``I'll
+match your price if you do'', ``I'll cooperate if you do the same''---as punishment.
+Hand-adjudication of a stratified $40$-message sample put its precision at
+$\approx\!0.15$. It produced a large, tidy, and entirely spurious result: rules
+appeared to follow defection with a round-level hazard difference of
+$+0.130$ $[+0.117,+0.143]$ and to depress lock-in by $-0.297$ $[-0.377,-0.215]$. Both
+survived a temporal-ordering design that we had introduced specifically to guard
+against reverse causation.
+
+The corrected detector requires an \emph{adverse} consequence co-occurring with a
+\emph{peer-deviation} trigger in the same sentence, and vetoes cooperative-reciprocity
+phrasings. Hand-adjudicated precision on a fresh sample is $\approx\!0.94$. Under it,
+the hazard difference is $+0.002$ $[-0.004,+0.008]$ and the lock-in effect is
+$-0.099$ $[-0.211,+0.012]$---both null. \textbf{We retract the two v1 numbers.}
+
+Two lessons generalise. First, a plausible lexical mediator can manufacture a clean
+effect that a temporal design does not catch, because the design controls for
+\emph{when} the mediator is measured, not for \emph{what} it measures. Second, a
+detector supporting a published null needs its error rates measured, not asserted.
+
+\paragraph{Validation (V1).}
+We judged $300$ messages, stratified $50/50$ on the detector's own verdict so both
+error directions are estimable, against the written definition
+(Table~\ref{tab:v1}). Agreement is $0.920$ and \textbf{Cohen's
+$\kappa=0.840$}, passing the pre-registered $\kappa\ge0.6$ gate for the
+\S\ref{sec:rules} claims.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{V1: detector vs.\ judge}, $n{=}300$ stratified. Rates are conditional
+on the stratification, not population rates; the population base rate of
+detector-positive messages is $0.006$.}
+\label{tab:v1}
+\small
+\begin{tabular}{lcc}
+\toprule
+& judge: rule & judge: not rule \\
+\midrule
+\textbf{detector: rule}     & 127 & 23 \\
+\textbf{detector: not rule} & 1   & 149 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Precision is $0.847$ and recall $0.992$. Two readings matter for how
+\S\ref{sec:rules} should be believed. \emph{The miss rate is low}: of $150$
+detector-negatives the judge reclassified exactly one, so the reported base rate of
+$17.2\%$ of matches is a tight rather than a loose lower bound. And \emph{precision is
+probably understated}: the disagreements are almost entirely detector-positive /
+judge-negative, and on inspection most are genuine contingent punishment rules the
+judge declined to credit---``if you undercut me again, I'll have to lower my price
+further''; ``if you defect, I'll defect next round''. We therefore treat $0.847$ as a
+conservative floor and do not adjust the base rates upward.
+
+\paragraph{A caveat on the judge.}
+The judge is the same model family as one of the arena players, which is weaker
+independence than we would like; a frontier judge from an unrelated family would be a
+stronger test and costs only $300$ short calls. We report the validation as sufficient
+to rule out the gross failure that killed v1---a detector whose positives are mostly
+not punishments at all---and not as an unimpeachable ground truth.
+
+\subsection{Deployment-matched fidelity protocol}
+\label{sec:protocol}
+
+The latent-channel work produced a reusable methodological result. The adapter passed
+a standard neutral continuation-fidelity gate (KL $0.649$, top-$1$ $0.701$) and then
+failed in deployment---and so did \emph{exact token embeddings} (KL $0.413$, worse
+than the trained link), proving the failure was the receiver layout rather than
+adapter quality. Matching the layout drove the token oracle to exactly $0.000$ KL and
+$1.000$ top-$1$ agreement, and only then did a link trained under that layout beat all
+controls. Any study of latent inter-agent channels should therefore adopt:
+\begin{enumerate}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
+\item an \textbf{exact-token oracle} that must score $0.000$ KL, or the harness is broken;
+\item \textbf{matched payload placement} for text and latent conditions;
+\item a \textbf{deployment-distribution} fidelity gate, not a neutral one;
+\item the \textbf{shuffled/zero/random} trio---in the legacy layout, shuffled
+\emph{beat} trained ($0.184$ vs $0.269$), a result that would have been published as a
+positive by anyone lacking these controls.
+\end{enumerate}
+We also report a diagnostic we invalidated: a strategic-intent probe scored $1.0$
+AUROC for both the trained \emph{and} the random link, because the labels were already
+linearly recoverable from random high-dimensional features.
+
+\subsection{Protocol and disclosure}
+\label{sec:disclosure}
+
+All experiments are pre-registered before any seed is run; specifications are released.
+The primary outcome is match-level lock-in with Wilson intervals, matches being
+bimodal. Refusals are coded as outcomes and never dropped; API errors are excluded
+from behavioural metrics and reported separately. Confirmatory claims run on fresh
+held-out seed offsets. The abstract and contribution list contain confirmatory claims
+only; the wider exploratory catalogue moves to a hypothesis register
+(App.~\ref{app:register}) with its multiplicity problem stated. Alignment scenarios
+run in a mocked in-memory sandbox with a runtime containment assertion; no agent takes
+an action with real-world effect.
+
+\subsection{Responsible disclosure}
+\label{sec:ethics}
+
+This paper narrows a known attack surface rather than opening a new one. The
+behaviours it characterises---channel-driven cooperation and price collusion, guardrail
+evasion by ambient delivery---are already documented in the cited literature and in our
+own prior work; what is new here is the \emph{predicate} and the defenses that follow
+from it. We judge disclosure net-positive on three grounds. The predicate is
+\emph{defensive information}: it tells an operator that two intuitive controls
+(capacity limits, content monitoring) do not work and why, which is knowledge a
+defender needs and an attacker already has by default, since the coordinating utterance
+is the obvious one to send. The monitor result is strictly protective: it corrects a
+mis-set operating point and marks the regime in which a detector should not be deployed
+at all. And we release no elicitation method: the manipulations restrict what agents
+may say, they do not teach a model to coordinate or to evade. All scenarios run in a
+mocked in-memory sandbox with a runtime containment assertion, so no agent takes an
+action with real-world effect.
+
+% ======================================================================

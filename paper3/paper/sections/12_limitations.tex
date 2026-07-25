@@ -1,0 +1,37 @@
+\section{Limitations}
+\label{sec:limitations}
+
+\begin{itemize}[leftmargin=1.1em,itemsep=2pt,topsep=2pt]
+\item \textbf{Model and scaffold scope, and it bites harder than usual.} The
+re-analysis covers four open-weight models through hosted inference; every new
+experiment runs on a \emph{single} model, Qwen2.5-14B-Instruct at bf16. Self-hosting
+pins the precision the prior work could not, but narrows the model set to one. This is
+not a generic caveat here: P1 shows the menu-signal result \emph{reversing sign}
+between $72$B and $14$B, so at least one interface effect in this literature is
+model-specific. Our own single-model results are exposed to exactly that risk, and a
+multi-model replication is the first thing we would want.
+\item \textbf{No same-model bridge to the published corpus.} The new experiments were
+not run on the models behind the prior work, so the $14$B ladder \emph{generalises}
+the published pattern rather than \emph{calibrating} against it. Given the sign
+reversal above, that gap matters.
+\item \textbf{The decision-shaping account is correlational.} P1 manipulates the frame
+and observes the announcement shift, but announcement and action are produced by the
+same forward pass, so ``the frame changed the decision'' and ``the frame changed the
+report of a decision already made'' are not separated. Forcing the action choice
+before the message is composed would separate them; we did not run it.
+\item \textbf{Detector recall unmeasured.} All rule base rates in \S\ref{sec:rules}
+are lower bounds pending V1.
+\item \textbf{Ambient artifacts are author-constructed} and not strength-matched
+against the direct pleas in P2. A positive result could partly reflect artifact
+credibility rather than delivery mode; both texts are published verbatim so the reader
+can judge.
+\item \textbf{The predicate is tested in English}, in two games, with a specific
+prompt scaffold. The first-person-plural cue is a linguistic proxy for a semantic
+property, and the mapping may not transfer across languages.
+\item \textbf{Observational components remain observational.} \S\ref{sec:reanalysis}
+establishes what does \emph{not} predict outcomes; the causal claim rests on P1 and P3.
+\item \textbf{The latent-channel result is one architecture, one scale, one training
+objective}, and bounds an attack rather than establishing safety.
+\end{itemize}
+
+% ======================================================================

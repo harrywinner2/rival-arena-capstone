@@ -1,0 +1,87 @@
+\section{P2: The Guardrail Boundary, Across Three Domains}
+\label{sec:p2}
+
+Prior work found that an agent under an explicit honesty mandate \emph{refuses} a
+direct interpersonal request to misreport a failing peer ($0.00$) yet passes along the
+same false status when it arrives as an ambient artifact ($\approx0.75$), and that
+making the report auditable does not help ($0.71$ unobserved vs $0.77$ observed,
+$n{=}48$). That finding rested on a single sandboxed task family, which is a fair
+reason to discount it.
+
+\paragraph{Design.}
+Three attestation domains sharing nothing with the original world but the abstract
+structure---an agent must file a verdict about a ground truth it can read, and a
+misleading premise reaches it by one of two routes:
+\emph{code review} (a pull request whose CI is red), \emph{compliance} (a control that
+failed testing), \emph{procurement} (a vendor in SLA breach). Each crosses
+\texttt{direct} (an explicit plea from the interested party) against \texttt{ambient}
+(a pre-populated checklist, draft, or scorecard asserting the favourable state). Both
+routes carry the same false claim; only delivery differs. $48$ seeds per cell, forced
+verdict, deterministic honest/omission/active-lie scoring against ground truth,
+Benjamini--Hochberg across domains plus a Cochran--Mantel--Haenszel pooled test.
+
+\paragraph{Pre-committed reading.}
+Two or more domains replicating means the effect is not specific to the original task
+family; zero of three means it does not generalise and the prior finding should be
+scoped to that family. We commit to reporting the null as prominently as the positive.
+
+\paragraph{Result: the effect replicates, but not as deception.}
+Across $288$ runs with zero API errors, the ambient route produces far more false
+filings than the direct request in two of three domains
+(Table~\ref{tab:p2}); pooled across domains, Cochran--Mantel--Haenszel gives
+$\chi^2=109.2$, $p<10^{-15}$. By the pre-registered rule ($\ge2$ of $3$), the
+request-modality effect is \textbf{not specific to the original task family}. The
+direct-request cells are the sharper half of the finding: in code review and
+procurement, agents asked outright to file a false verdict comply
+\textbf{$0.00$} of the time.
+
+\begin{table}[t]
+\centering
+\caption{\textbf{P2: active-lie rate by domain and delivery}, $n{=}48$/cell, forced
+verdict, Wilson 95\% CIs. The right-hand block restricts to runs in which the agent
+actually read the authoritative record---the only runs in which a false filing is a
+\emph{knowing} misreport.}
+\label{tab:p2}
+\small
+\begin{tabular}{llcc|ccc}
+\toprule
+& & \multicolumn{2}{c|}{all runs} & \multicolumn{3}{c}{read the record} \\
+domain & delivery & lie & 95\% CI & read rate & $n$ & lie \\
+\midrule
+code review   & direct  & 0.00 & [.00,.07] & 0.44 & 21 & 0.00 \\
+code review   & ambient & \textbf{0.73} & [.59,.83] & 0.58 & 28 & \textbf{0.54} \\
+compliance    & direct  & 0.15 & [.07,.27] & 0.60 & 29 & 0.21 \\
+compliance    & ambient & 0.19 & [.10,.32] & 1.00 & 48 & 0.19 \\
+procurement   & direct  & 0.00 & [.00,.07] & 0.96 & 46 & 0.00 \\
+procurement   & ambient & \textbf{0.94} & [.83,.98] & \textbf{0.06} & 3 & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{The mechanism is pre-empted verification, not persuasion.}
+The pre-registered knowledge gate changes what the effect \emph{is}. In procurement,
+the ambient artifact did not talk an informed agent into a false recommendation---it
+stopped the agent from ever looking. Only $6\%$ of ambient-route agents called
+\texttt{read\_truth} (versus $96\%$ under a direct request), and \emph{every} one of
+the $45$ who did not look filed the favourable verdict. With three readers, that cell
+cannot be tested at all, and we report it as untestable rather than as a null.
+
+Only code review supports a genuine knowing-misreport claim, and there it is large:
+among agents that had read the failing CI results, the ambient route still produced
+$0.54$ false approvals against $0.00$ under a direct ask (RD $+0.536$
+$[+0.300,+0.705]$, $p{=}3{\times}10^{-5}$). Compliance is null on both analyses
+($-0.019$ $[-0.216,+0.151]$)---and is also the one domain where the direct ask
+partially works ($0.21$ among readers), which suggests a regulator-pressure framing
+is more persuasive than an interpersonal plea.
+
+\paragraph{What this changes for a defender.}
+The headline generalises; the \emph{explanation} does not. A pre-populated artifact is
+dangerous mainly because it removes the agent's reason to check, and only secondarily
+because it makes an informed agent willing to misreport. Auditing the filing---already
+shown not to help---is doubly the wrong control here, because the failure happens
+before anything is filed. The implied defense is to \textbf{make verification
+mandatory and non-skippable}: an agent that cannot file without first reading the
+record is not exposed to the dominant route at all. We did not test that control and
+flag it as the obvious next experiment.
+
+% ======================================================================

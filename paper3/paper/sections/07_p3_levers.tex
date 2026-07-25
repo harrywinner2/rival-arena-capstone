@@ -1,0 +1,69 @@
+\section{P3: Ranking the Levers Against Each Other}
+\label{sec:p3}
+
+\paragraph{Why a factorial.}
+``Communication is the dominant attack surface'' is a \emph{comparative} claim, and
+the prior work never tested it comparatively: it showed the channel works, never that
+it outranks the alternatives. P3 crosses the three candidate levers in one design---
+expressiveness $\{$intention, proposal, free$\}$ $\times$ throughput $\{$one message,
+every round$\}$ $\times$ observability $\{$observed, private$\}$, $24$ seeds per cell.
+
+\paragraph{Pre-registered ordinal prediction.}
+$\eta^2(\text{expressiveness}) > \eta^2(\text{throughput}) \approx
+\eta^2(\text{observability})$, with the expressiveness effect at least $3\times$ the
+larger of the other two. Effect sizes are reported in a single ordering with bootstrap
+intervals rather than as separate significance tests. A pre-registered ordering that
+can come out wrong is stronger evidence than three independently significant
+contrasts.
+
+\paragraph{Result: the ordering holds, the dominance claim does not.}
+Across $288$ matches the predicted \emph{ordering} is exactly right---expressiveness
+$>$ throughput $>$ observability---and the predicted \emph{dominance} fails by a wide
+margin (Table~\ref{tab:p3}). Expressiveness is $1.34\times$ the next factor against a
+pre-registered requirement of $\ge3\times$, and all three intervals overlap heavily.
+The pre-registered verdict is therefore \textbf{partial}, and the honest summary is
+that these are three small, comparable effects rather than one dominant lever.
+
+\begin{table}[t]
+\centering
+\caption{\textbf{P3, $24$ seeds/cell, $288$ matches.} Partial $\eta^2$ on mean
+cooperation with bootstrap 95\% CIs, reported in a single ordering as pre-registered.
+Marginal lock-in is shown for interpretability.}
+\label{tab:p3}
+\small
+\begin{tabular}{lccl}
+\toprule
+factor & partial $\eta^2$ & 95\% CI & marginal lock-in \\
+\midrule
+expressiveness & 0.0415 & [0.0089, 0.1069] & free 0.740 / proposal 0.729 / intention 0.531 \\
+throughput     & 0.0311 & [0.0037, 0.0873] & every 0.771 / once 0.562 \\
+observability  & 0.0176 & [0.0005, 0.0638] & private 0.743 / observed 0.590 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{This retires the ``dominant attack surface'' claim.}
+The prior work's organising thesis was that communication is the \emph{dominant} lever
+converting strategic interaction into principal-harming coordination. That is a
+comparative claim, and P3 is the first time it has been tested comparatively with a
+threshold fixed in advance. It does not survive: the channel property with the largest
+effect has an $\eta^2$ of $0.04$, and the two factors it was supposed to dwarf sit
+within its confidence interval. We report the thesis as \textbf{not supported at the
+strength originally claimed}. What survives is the much weaker statement that
+expressiveness is the largest of several comparable levers.
+
+\paragraph{Two details worth their own line.}
+First, \textbf{observability moves the wrong way}: private channels produce \emph{more}
+coordination than observed ones ($0.743$ vs.\ $0.590$). The prior work treated
+observation as a weak control; here it is weak and, if anything, inverted, which is
+one more reason not to build a defense on watching the channel.
+
+Second, \textbf{throughput is nearly as strong as expressiveness} ($0.031$ vs.\
+$0.041$), and its marginal is large (one message per match $0.562$ vs.\ a message every
+round $0.771$). That sits beside P4, where suppressing a \emph{contiguous window}
+within a match did nothing. The margin that matters is not how many rounds a channel is
+open but whether the pair gets one exchange or many---consistent with the throughput
+probe's finding that a single $60$-character message already moves an
+inclined pair most of the way (\S\ref{sec:sms}).
+
+% ======================================================================

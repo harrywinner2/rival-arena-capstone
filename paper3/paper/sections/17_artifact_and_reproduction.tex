@@ -1,0 +1,38 @@
+\section{Artifact and Reproduction}
+\label{app:artifact}
+
+Every number in \S\ref{sec:reanalysis} and \S\ref{sec:monitor} is recomputed from the
+released corpus by the scripts below; none requires model inference, so the
+re-analysis is reproducible at zero cost.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+claim & command \\
+\midrule
+\S\ref{sec:rules} rule rates, hazard, recovery & \texttt{src/diagnose\_rule\_timing.py} \\
+\S\ref{sec:horserace} mediator horse-race & \texttt{src/horserace.py} \\
+\S\ref{sec:decomp} opening/persistence & \texttt{src/opening\_vs\_persistence.py} \\
+\S\ref{sec:predicate-obs} the predicate & \texttt{src/proposal\_predicate.py} \\
+\S\ref{sec:sms} SMS probe content & \texttt{src/sms\_conditionality.py} \\
+\S\ref{sec:monitor} monitor cost curve & \texttt{src/monitor\_defense.py} \\
+Figures 1--3 & \texttt{src/figures.py} \\
+\midrule
+P1 predicate experiment & \texttt{src/p1\_experiment.py}, \texttt{src/p1\_analyze.py} \\
+P2 request modality & \texttt{src/p2\_experiment.py}, \texttt{src/p2\_analyze.py} \\
+P3 lever factorial & \texttt{src/p3\_experiment.py}, \texttt{src/p3\_analyze.py} \\
+P4 opening-window defense & \texttt{src/p4\_experiment.py}, \texttt{src/p4\_analyze.py} \\
+capability gate & \texttt{src/g0\_gate.py} \\
+detector validation & \texttt{src/validate\_detector.py} \\
+whole program & \texttt{run\_program.sh <endpoint>} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+The detector is deterministic (regular expressions, no model call), so
+\S\ref{sec:rules} is bit-reproducible. Inference experiments run against an
+OpenAI-compatible endpoint; we report the served model, precision, and serving stack,
+and---unlike the hosted inference behind the prior work---\textbf{precision is pinned}
+rather than unknown. Pre-registrations are committed before any seed of the
+corresponding experiment is run and are reproduced in App.~\ref{app:prereg}.

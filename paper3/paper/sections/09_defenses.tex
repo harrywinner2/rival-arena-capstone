@@ -1,0 +1,133 @@
+\section{Defenses}
+\label{sec:defense}
+
+\subsection{Why the obvious controls fail}
+\label{sec:matrix}
+
+Table~\ref{tab:defense} collects the controls a defender would reach for, including the
+one this paper proposed and then falsified. The pattern is uncomfortable: of six
+candidate controls, four fail outright, one is partial and cost-dependent, and the only
+reliably effective intervention is removing the channel altogether---which also removes
+whatever legitimate coordination it was carrying.
+
+The reason is visible in P1, P4 and the throughput probe together. The channel effect
+\textbf{saturates on almost nothing}: a two-item menu, a single $60$-character message,
+or three of twelve rounds of access each recover most of the effect of an unrestricted
+channel. Controls that ration capacity therefore operate on the wrong margin, and
+controls that inspect content operate on a signal \S\ref{sec:horserace} shows is not
+predictive.
+
+\begin{table}[t]
+\centering
+\caption{\textbf{The defense matrix.} Established results are from prior work and
+\S\ref{sec:reanalysis}; the last two rows are this paper's constructive contribution.}
+\label{tab:defense}
+\small
+\begin{tabularx}{\textwidth}{l X l}
+\toprule
+control & result & verdict \\
+\midrule
+format restriction (menu / intention-only) & lock-in $\to 0.00$--$0.06$ & works, but
+destroys legitimate coordination and arms deception \\
+throughput throttling & one $60$-char SMS: $0.45\!\to\!0.80$ & \textbf{fails} \\
+passive monitoring & detect $0.85$--$1.00$, $\Delta K\approx0$ & \textbf{fails} \\
+auditing the report channel & $0.71$ unobs.\ vs $0.77$ obs. & \textbf{fails} \\
+\midrule
+calibrated monitor $+$ enforcement & loss $-64$ to $-85\%$; useful in $14/24$ regimes
+& \textbf{partial, bounded} \\
+opening-window suppression (P4) & $0.53\times$ linear; partial suppression $\approx$
+full channel & \textbf{fails} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{A cost-optimal monitor operating point}
+\label{sec:monitor}
+
+The prior work reported the collusion monitor as discriminative but mis-thresholded.
+That is a diagnostic, not a defense: it does not tell an operator where to cut. We
+turn it into a decision rule. The principal penalises on a flag, so per scored round
+the expected loss at threshold $t$ is
+\[
+L(t) \;=\; c_{\text{FP}}\,(1-\pi)\,\mathrm{FPR}(t) \;+\; c_{\text{FN}}\,\pi\,\mathrm{FNR}(t),
+\]
+with $\pi$ the prevalence of colluding rounds. The operator picks $t^\star =
+\arg\min_t L(t)$ and---critically---compares $L(t^\star)$ against the two do-nothing
+baselines, never-flag ($c_{\text{FN}}\pi$) and always-flag ($c_{\text{FP}}(1-\pi)$).
+
+Reproducing the published labelling (realised collusion, ambiguous band dropped) gives
+$\mathrm{AUC}=0.893$. Against the shipped operating point (TPR $0.913$, FPR $0.450$),
+calibration cuts expected loss by $64$--$85\%$ at $\pi{=}0.25$. But the honest result
+is the boundary: \textbf{the monitor beats both do-nothing baselines in only $14$ of
+the $24$ cost/prevalence regimes examined.} At high false-positive cost and low
+prevalence the optimal policy is not to flag at all, and the correct operator
+recommendation is to run no detector rather than a mis-thresholded one.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/p3_monitor_cost.pdf}
+\caption{\textbf{Operating the monitor as a decision, not a diagnostic.} Left: the
+score is discriminative. Right: expected loss per scored round as a function of the
+threshold, at prevalence $0.25$, for three false-positive/false-negative cost ratios.
+The minimum moves with the cost ratio, which is why a single shipped threshold cannot
+be right for every deployment---and why, in the high-cost/low-prevalence corner, the
+minimum is attained by not flagging at all.}
+\label{fig:monitor}
+\end{figure}
+
+\subsection{Opening-window suppression}
+\label{sec:p4}
+
+\S\ref{sec:decomp} showed the channel both displaces the opening and slows the decay.
+If the opening is where the trajectory is set, an operator can close the channel for
+the first few rounds only and capture most of the protection while leaving agents free
+to communicate for the rest of the interaction. P4 apportions the two components with
+four arms---\texttt{full}, \texttt{suppress\_early} (rounds $0$--$2$ closed),
+\texttt{suppress\_late} (only rounds $0$--$2$ open), \texttt{none}---at $30$ seeds
+each, and reports protection per round suppressed so the control can be priced.
+
+\paragraph{Result: the defense does not work.}
+Neither window carries the effect, because \emph{partial suppression barely suppresses}
+(Table~\ref{tab:p4}). Closing the channel for the opening rounds leaves lock-in
+statistically indistinguishable from a fully open channel (RD $-0.067$
+$[-0.225,+0.082]$); closing everything \emph{but} the opening is likewise
+indistinguishable ($-0.100$ $[-0.266,+0.056]$). Only removing the channel outright
+moves the outcome (\texttt{full} $-$ \texttt{none} $=+0.500$ $[+0.282,+0.667]$,
+$p{=}2\times10^{-5}$).
+
+\begin{table}[t]
+\centering
+\caption{\textbf{P4, $n{=}30$/arm.} Opening window $=$ rounds $0$--$2$. Every arm with
+\emph{any} channel access lands near the full-channel ceiling; only total removal
+separates.}
+\label{tab:p4}
+\small
+\begin{tabular}{lccccc}
+\toprule
+arm & lock-in & Wilson 95\% CI & mean $C$ & opening $C$ & closing $C$ \\
+\midrule
+none            & 0.467 & [0.30, 0.64] & 0.718 & 0.911 & 0.577 \\
+suppress\_early & 0.900 & [0.74, 0.97] & 0.936 & 0.964 & 0.931 \\
+suppress\_late  & 0.867 & [0.70, 0.95] & 0.916 & 1.000 & 0.860 \\
+full            & 0.967 & [0.83, 0.99] & 0.972 & 1.000 & 0.957 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Priced as a control, suppressing three of a median twelve rounds costs $25\%$ of the
+interaction and buys $13\%$ of the available protection---$\mathbf{0.53\times}$ the
+naive linear rate, i.e.\ \emph{worse} than closing the channel uniformly. We proposed
+this defense in the design and report it as \textbf{failed}.
+
+\paragraph{Why it failed, and what that implies.}
+The observational decomposition (\S\ref{sec:decomp}) was not wrong---the channel really
+does both lift the opening and slow the decay---but it does not license the inference
+we drew from it. The effect saturates on very little channel access: a pair that can
+talk for nine of twelve rounds behaves like a pair that can talk throughout, and a pair
+that can talk for only the first three behaves the same way. This converges with the
+throughput probe, where a single $60$-character message moved a pair most of the way
+(\S\ref{sec:sms}), and with P1, where a two-item menu was sufficient. \textbf{Rationing
+a channel is not a control at any granularity we tested}; the operative choice is
+whether the channel exists at all.
+
+% ======================================================================

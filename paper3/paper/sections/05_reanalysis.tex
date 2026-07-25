@@ -1,0 +1,196 @@
+\section{The Content Account Does Not Survive Re-analysis}
+\label{sec:reanalysis}
+
+We re-analyse the released corpus: $2{,}082$ LLM-vs-LLM matches and $68{,}290$
+round-records across the published experiment families, plus $320$ matches from an
+independent throughput probe. Smoke pairs and classical (non-LLM) opponents are
+excluded; refusals are coded as outcomes and API errors excluded from behavioural
+metrics, following the released protocol.
+
+\subsection{Punishment rules are rare and predict nothing}
+\label{sec:rules}
+
+We detect contingent punishment rules with a high-precision detector requiring an
+\emph{adverse} consequence co-occurring with a \emph{peer-deviation} trigger in the
+same sentence, with cooperative-reciprocity phrasings vetoed (\S\ref{sec:methods}
+documents its construction and a retraction). Across $540$ free-text IPD matches:
+
+\begin{itemize}[leftmargin=1.1em,itemsep=2pt,topsep=2pt]
+\item rules appear in $17.2\%$ of matches and $0.6\%$ of messages;
+\item they are \emph{not} elevated after a defection: round-level hazard difference
+$+0.002$ $[-0.004,+0.008]$;
+\item they do not aid recovery. Restricted to rounds in which a defection just
+occurred, $P(\text{mutual cooperation next round})$ is $0.164$ with a rule versus
+$0.116$ without: $+0.048$ $[-0.036,+0.142]$;
+\item they do not predict the match outcome: IPD lock-in $-0.099$ $[-0.211,+0.012]$
+($n{=}93$ vs $447$); Bertrand $K$ $+0.143$ $[-0.103,+0.517]$ ($n{=}16$ vs $544$, too
+thin to interpret).
+\end{itemize}
+
+\noindent The grim-trigger scheme quoted in the prior paper is genuinely present in
+the transcripts. It is not doing the work.
+
+\subsection{No content class predicts the outcome}
+\label{sec:horserace}
+
+Observational mediation is vulnerable to reverse causation---agents may threaten
+\emph{because} a match is going badly. We therefore score every candidate mediator on
+the \emph{opening} rounds and predict cooperation in the \emph{closing} half,
+controlling for how the opening actually went. A mediator measured before the outcome
+window cannot be a response to it. Table~\ref{tab:horserace} gives the result.
+
+\begin{table}[t]
+\centering
+\caption{\textbf{Mediator horse-race, temporal design.} Content classes scored on
+rounds $0$--$2$; outcome is closing-half cooperation. IPD free-text, $n{=}484$.
+Everything the agents \emph{say} is null; what predicts the ending is what they
+\emph{did} at the start.}
+\label{tab:horserace}
+\small
+\begin{tabularx}{0.8\textwidth}{X r l}
+\toprule
+term & coefficient & 95\% CI \\
+\midrule
+opening threat            & $+0.055$ & $[-0.005, +0.117]$ \\
+opening joint-plan        & $-0.048$ & $[-0.119, +0.023]$ \\
+opening affirmation       & $+0.102$ & $[-0.023, +0.237]$ \\
+opening solicitation      & $-0.016$ & $[-0.071, +0.041]$ \\
+opening message length (z)& $-0.017$ & $[-0.054, +0.016]$ \\
+\textbf{opening cooperation (z)} & $\mathbf{+0.228}$ & $\mathbf{[+0.196, +0.255]}$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Message length is null here and trends negative within sustained matches
+(opening-length tertiles: short $0.827$, mid $0.795$, long $0.775$). This is the
+opposite of what a bandwidth account predicts.
+
+\subsection{The channel both displaces the opening and slows the decay}
+\label{sec:decomp}
+
+Decomposing by rung (Table~\ref{tab:decomp}), the channel raises opening cooperation
+from $0.622$ to $0.815$ \emph{and} slows the subsequent decay. Because decay is
+floor-confounded---an arm sitting near zero cannot fall---we re-test within matches
+that opened above $C>0.8$, where every arm has equal room to fall. The channel effect
+on persistence survives: $\mathrm{L2}-\mathrm{L0}$ decay $+0.352$ $[+0.292,+0.411]$.
+Both components are real, which is what makes the defense in \S\ref{sec:p4} an
+apportionment question rather than a foregone conclusion.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/f2_trajectory.pdf}
+\caption{\textbf{Cooperation by round and rung (IPD).} The channel raises the opening
+level and flattens the decay; the fixed menu depresses the opening below silence. The
+shaded band is the opening window targeted by the defense in \S\ref{sec:p4}. Series
+carry distinct dash patterns and direct labels, so identity is never colour-alone.}
+\label{fig:traj}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{\textbf{Opening displacement and persistence, IPD.} Opening $=$ rounds
+$0$--$2$; closing $=$ second half. Right-hand block restricts to matches opening at
+$C>0.8$ so decay is not floor-confounded.}
+\label{tab:decomp}
+\small
+\begin{tabular}{lrrrr|rrr}
+\toprule
+& \multicolumn{4}{c|}{all matches} & \multicolumn{3}{c}{opened at $C>0.8$} \\
+rung & $n$ & open & close & decay & $n$ & close & decay \\
+\midrule
+L0 none      & 314 & 0.622 & 0.248 & $-0.373$ & 124 & 0.400 & $-0.549$ \\
+L1 menu      & 115 & 0.301 & 0.069 & $-0.232$ &  14 & 0.374 & $-0.590$ \\
+L2 free text & 366 & 0.815 & 0.644 & $-0.171$ & 267 & 0.791 & $-0.197$ \\
+L3 private   & 118 & 0.820 & 0.734 & $-0.086$ &  85 & 0.825 & $-0.158$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{What does separate the arms}
+\label{sec:predicate-obs}
+
+Table~\ref{tab:predicate} scores every arm for whether it \emph{admits} a joint
+proposal. The separation is complete, and it survives the obvious alternatives. The
+\texttt{C1 restricted} arm is self-authored free text with a message every round,
+which rules out authorship and channel presence; it carries own intentions and
+behaves like the fixed menu.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.86\textwidth]{figures/f1_predicate.pdf}
+\caption{\textbf{The predicate separates every arm.} Cooperation lock-in by arm,
+grouped by whether the channel admits a joint proposal. \texttt{C1 free text, own
+intention only} is self-authored free text with a message every round and still sits at
+$0.00$, which rules out authorship and channel presence as the active ingredient. At
+the arm level the grouping is confounded with message length; \S\ref{sec:p1} breaks
+that confound.}
+\label{fig:predicate}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{\textbf{The predicate across seven arms.} Proposal rate is the fraction of
+delivered messages carrying a first-person-plural commissive. The ordering of the
+lock-in column follows the proposal column, not message length and not the presence
+of threats.}
+\label{tab:predicate}
+\small
+\begin{tabularx}{\textwidth}{X r r r r l}
+\toprule
+arm & prop.\ rate & int.-only & opening $C$ & lock-in & Wilson 95\% CI \\
+\midrule
+L0 none                       & 0.000 & 0.000 & 0.630 & 0.113 & [0.08, 0.15] \\
+L1 menu                       & 0.000 & 1.000 & 0.318 & 0.057 & [0.03, 0.12] \\
+C1 selected                   & 0.000 & 1.000 & 0.217 & 0.050 & [0.01, 0.24] \\
+C1 restricted                 & 0.000 & 1.000 & 0.175 & 0.000 & [0.00, 0.16] \\
+C1 free                       & 1.000 & 0.000 & 0.850 & 0.550 & [0.34, 0.74] \\
+L2 observed                   & 0.918 & 0.022 & 0.845 & 0.599 & [0.55, 0.65] \\
+L3 private                    & 0.939 & 0.013 & 0.825 & 0.651 & [0.56, 0.73] \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+At the arm level this is confounded with message length (\texttt{C1 restricted}
+averages $20.7$ characters, \texttt{C1 free} $143$). The message-level evidence breaks
+the confound in both directions---$172$ proposals under $40$ characters, $4{,}293$
+own-intention messages of $20+$ characters, some over $200$---but a clean test needs
+the manipulation, which is \S\ref{sec:p1}.
+
+\subsection{Convergent evidence from an independent apparatus}
+\label{sec:sms}
+
+The throughput probe is a separate codebase in which each agent may send one
+$\le\!60$-character SMS per round against a finite credit budget. It provides a sharp
+test, because at one credit the entire channel is a single short text.
+
+\begin{table}[t]
+\centering
+\caption{\textbf{The one-credit cell.} The single $60$-character text that lifts a
+pair from $0.45$ to $0.80$ lock-in carries \emph{no} punishment rule. The pair that
+fails to coordinate produces threats abundantly and still does not.}
+\label{tab:sms}
+\small
+\begin{tabular}{lrrr}
+\toprule
+pair & credits & lock-in & rule rate \\
+\midrule
+qwen $\times$ deepseek & 0 & 0.45 & 0.00 \\
+qwen $\times$ deepseek & \textbf{1} & \textbf{0.80} & \textbf{0.00} \\
+qwen $\times$ llama    & 0 & 0.00 & 0.00 \\
+qwen $\times$ llama    & 8 & 0.25 & 0.45 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Every distinct text at one credit is a bare joint proposal:
+
+\begin{excerpt}{Throughput probe, 1 credit, qwen $\times$ deepseek}
+``Let's both HOLD for max profit.'' \quad ``Let's both HOLD for mutual benefit.''
+\quad ``Let's HOLD, split the profit. $3{+}3 > 5{+}0$.''
+\end{excerpt}
+
+\noindent Threats are what these agents produce when coordination is \emph{not}
+working---which is also why a naive mediation analysis assigns them a spurious
+negative coefficient (\S\ref{sec:methods}).
+
+% ======================================================================

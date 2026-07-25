@@ -1,0 +1,108 @@
+\section{Statistics}
+\label{app:stats}
+
+All experiments ran on a self-hosted Qwen2.5-14B-Instruct at bf16 (vLLM, single A100
+80GB, \texttt{max\_model\_len} 4096). Precision is pinned and reported, unlike the
+hosted inference behind the prior work. Refusals are coded as outcomes; API/transport
+errors are excluded from behavioural metrics and reported separately --- across all
+$846$ matches and $288$ scenario runs reported here the API error rate was
+$\mathbf{0.000}$.
+
+\subsection{Per-experiment raw counts}
+
+\begin{center}
+\small
+\begin{tabular}{llcccl}
+\toprule
+exp & arm & $k/n$ & lock-in & Wilson 95\% CI & mean $C$ \\
+\midrule
+G0 & L0 none      & 6/24  & 0.250 & [0.12, 0.45] & 0.652 \\
+G0 & L2 free text & 24/24 & 1.000 & [0.86, 1.00] & 0.997 \\
+\midrule
+P1 & none      & 6/30  & 0.200 & [0.10, 0.37] & 0.582 \\
+P1 & menu      & 27/30 & 0.900 & [0.74, 0.97] & 0.931 \\
+P1 & intention & 12/30 & 0.400 & [0.25, 0.58] & 0.575 \\
+P1 & proposal  & 23/30 & 0.767 & [0.59, 0.88] & 0.847 \\
+P1 & free      & 26/30 & 0.867 & [0.70, 0.95] & 0.930 \\
+\midrule
+P4 & none            & 14/30 & 0.467 & [0.30, 0.64] & 0.718 \\
+P4 & suppress\_early & 27/30 & 0.900 & [0.74, 0.97] & 0.936 \\
+P4 & suppress\_late  & 26/30 & 0.867 & [0.70, 0.95] & 0.916 \\
+P4 & full            & 29/30 & 0.967 & [0.83, 0.99] & 0.972 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Contrast tests}
+
+Fisher exact, two-sided; risk differences with Newcombe intervals. The P1 primary is
+uncorrected by pre-registration; all other families carry a Benjamini--Hochberg column.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l X c c c}
+\toprule
+exp & contrast & $p$ & RD [95\% CI] & BH \\
+\midrule
+G0 & text $-$ none & --- & $+0.750$ $[+0.508,+0.880]$ & gate \\
+\midrule
+P1 & \textbf{proposal $-$ intention} (primary) & $8.2\times10^{-3}$ & $+0.367$ $[+0.117,+0.559]$ & n/a \\
+P1 & proposal $-$ free      & $0.506$ & $-0.100$ $[-0.293,+0.100]$ & no \\
+P1 & intention $-$ none     & $0.158$ & $+0.200$ $[-0.032,+0.406]$ & no \\
+P1 & free $-$ none          & $3.3\times10^{-7}$ & $+0.667$ $[+0.429,+0.799]$ & yes \\
+P1 & menu $-$ none          & $5.6\times10^{-8}$ & $+0.700$ $[+0.467,+0.824]$ & yes \\
+\midrule
+P2 & code review, ambient $-$ direct   & $2.0\times10^{-15}$ & $+0.729$ $[+0.572,+0.834]$ & yes \\
+P2 & compliance, ambient $-$ direct    & $0.785$ & $+0.042$ $[-0.111,+0.193]$ & no \\
+P2 & procurement, ambient $-$ direct   & $6.5\times10^{-24}$ & $+0.938$ $[+0.808,+0.979]$ & yes \\
+P2 & code review, gated (readers only) & $2.6\times10^{-5}$ & $+0.536$ $[+0.300,+0.705]$ & yes \\
+P2 & compliance, gated                 & $1.000$ & $-0.019$ $[-0.216,+0.151]$ & no \\
+\midrule
+P3 & expressiveness (partial $\eta^2$) & --- & $0.0415$ $[0.0089,0.1069]$ & --- \\
+P3 & throughput (partial $\eta^2$)     & --- & $0.0311$ $[0.0037,0.0873]$ & --- \\
+P3 & observability (partial $\eta^2$)  & --- & $0.0176$ $[0.0005,0.0638]$ & --- \\
+\midrule
+P4 & suppress\_early $-$ full & $0.612$ & $-0.067$ $[-0.225,+0.082]$ & no \\
+P4 & suppress\_late $-$ full  & $0.353$ & $-0.100$ $[-0.266,+0.056]$ & no \\
+P4 & suppress\_early $-$ none & $6.3\times10^{-4}$ & $+0.433$ $[+0.201,+0.610]$ & yes \\
+P4 & suppress\_late $-$ none  & $2.2\times10^{-3}$ & $+0.400$ $[+0.163,+0.583]$ & yes \\
+P4 & full $-$ none            & $2.3\times10^{-5}$ & $+0.500$ $[+0.282,+0.667]$ & yes \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+P2 pooled across domains, Cochran--Mantel--Haenszel stratified by domain:
+$\chi^2=109.2$, $p<10^{-15}$.
+
+\subsection{Power and detectable effects}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+exp & $n$/cell & minimum detectable effect (power $0.80$, $\alpha{=}0.05$) \\
+\midrule
+G0 & 24 & RD $\approx0.40$; gate threshold set at a lower bound of $0.15$ \\
+P1 & 30 & RD $\approx0.35$; observed primary $+0.367$ \\
+P2 & 48 & RD $\approx0.28$ at a base rate near $0.10$ \\
+P4 & 30 & RD $\approx0.35$; the null contrasts are consistent with any true effect
+below that, and are reported as under-powered rather than as equivalence \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{No equivalence is claimed anywhere.} The non-significant contrasts
+(\texttt{proposal} vs.\ \texttt{free}; \texttt{suppress\_early} vs.\ \texttt{full};
+compliance ambient vs.\ direct) are reported as under-powered nulls. In P4 that
+distinction is load-bearing: we conclude the defense \emph{fails to help}, which the
+data support, and not that partial suppression is \emph{equivalent} to a full channel,
+which they cannot.
+
+\subsection{Detector validation (V1)}
+
+$300$ messages, stratified $50/50$ on the detector's verdict. Agreement $0.920$,
+precision $0.847$, recall $0.992$, Cohen's $\kappa=0.840$ (gate: $\kappa\ge0.6$).
+Confusion matrix in Table~\ref{tab:v1}. Population base rate of detector-positive
+messages: $0.006$.
+
+% ======================================================================
