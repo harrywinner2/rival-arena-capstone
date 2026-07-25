@@ -250,6 +250,74 @@ verification — untested, flagged as the next experiment.
 > cleaner and wrong in its mechanism. The gate was pre-registered; the analyzer
 > initially omitted it, which is why it was added and re-run.
 
+## 9. [REFUTED] P1 — the joint-proposal predicate is wrong
+
+150 matches, Qwen2.5-14B, manipulation check passed on every arm.
+
+| arm | proposal rate | intention-only | chars | lock-in | Wilson 95% CI |
+|---|---:|---:|---:|---:|---|
+| none | — | — | 0 | 0.200 | [0.10, 0.37] |
+| **menu** | 0.000 | **1.000** | 22 | **0.900** | [0.74, 0.97] |
+| intention | 0.000 | 1.000 | 16 | 0.400 | [0.25, 0.58] |
+| proposal | 1.000 | 0.000 | 21 | 0.767 | [0.59, 0.88] |
+| free | 1.000 | 0.000 | 96 | 0.867 | [0.70, 0.95] |
+
+Pre-registered primary **supported**: proposal − intention = **+0.367 [+0.117, +0.559]**,
+p = 8.2×10⁻³.
+
+**But the predicate is refuted by the same design.** `menu` is intention-only by
+construction ("I intend to cooperate" / "I intend to defect") and is the *highest* arm.
+A channel that cannot express a joint plan coordinates best. One confirming contrast
+does not rescue a hypothesis another arm contradicts.
+
+**What survives.** Messages are near-templated in the restricted arms, so announcements
+can be read directly and they track actions ~1:1:
+
+| arm | cooperative announcements | mean cooperation | promise-keeping |
+|---|---:|---:|---:|
+| menu | 0.945 | 0.928 | 0.974 |
+| proposal | 0.873 | 0.817 | 0.930 |
+| intention | 0.577 | 0.519 | 0.858 |
+
+P(cooperate | announced cooperate) = 0.933 vs 0.48 after a defection announcement. So
+the arms differ in **what the framing leads the agent to decide**, not in what a message
+can encode. The menu wins by *choice architecture* — a pre-written cooperative option
+placed in front of the agent, taken 94.5% of the time.
+
+> **Caveat, stated in the paper:** announcement and action come from the same forward
+> pass, so "the frame changed the decision" is not separated from "the frame changed the
+> report of a decision already made". Untested.
+
+**Failed replication.** On the published 72B spine the menu was the *worst* arm
+(0.00–0.06, below silence) — a headline of the prior papers. At 14B it is the *best*
+(0.900). The menu-signal result is **model-dependent and does not replicate**.
+
+## 10. [FAILED] P4 — opening-window suppression does not work as a defense
+
+120 matches.
+
+| arm | lock-in | Wilson 95% CI | mean C |
+|---|---:|---|---:|
+| none | 0.467 | [0.30, 0.64] | 0.718 |
+| suppress_early | 0.900 | [0.74, 0.97] | 0.936 |
+| suppress_late | 0.867 | [0.70, 0.95] | 0.916 |
+| full | 0.967 | [0.83, 0.99] | 0.972 |
+
+- suppress_early − full: **−0.067 [−0.225, +0.082]** (n.s.)
+- suppress_late − full: −0.100 [−0.266, +0.056] (n.s.)
+- full − none: **+0.500 [+0.282, +0.667]**, p = 2×10⁻⁵
+
+Suppressing 3 of a median 12 rounds costs 25% of the interaction and buys 13% of the
+protection — **0.53× the linear rate**, worse than uniform closure. **The defense fails.**
+
+The §2 decomposition was not wrong (the channel does both lift the opening and slow the
+decay) but it did not license the defense inferred from it. The effect **saturates on
+almost no channel access** — converging with P1 (a two-item menu suffices) and the SMS
+probe (one 60-char text suffices). Rationing a channel is not a control at any
+granularity tested.
+
+Reported as *fails to help*, **not** as equivalence — n=30 cannot earn that.
+
 ## Open items
 
 1. **P1 run** — the decisive test. Needs a working key. ~150 matches × 20 rounds ≈

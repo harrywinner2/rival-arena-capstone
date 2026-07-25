@@ -1,6 +1,6 @@
 # P3 — the lever factorial
 
-Run: `code/data/runs/P3/20260724T193817` — 24 matches.
+Run: `code/data/runs/P3/20260725T015504` — 288 matches.
 
 Pre-registered in `paper3/prereg/p3_levers.md`.
 
@@ -9,18 +9,18 @@ Pre-registered in `paper3/prereg/p3_levers.md`.
 
 | expressiveness | throughput | observability | n | lock-in | Wilson 95% CI | mean C |
 |---|---|---|---:|---:|---|---:|
-| free | every | observed | 2 | 0.000 | [0.00, 0.66] | 0.667 |
-| free | every | private | 2 | 0.000 | [0.00, 0.66] | 0.667 |
-| free | once | observed | 2 | 0.000 | [0.00, 0.66] | 0.500 |
-| free | once | private | 2 | 0.000 | [0.00, 0.66] | 0.500 |
-| intention | every | observed | 2 | 0.000 | [0.00, 0.66] | 0.667 |
-| intention | every | private | 2 | 0.000 | [0.00, 0.66] | 0.667 |
-| intention | once | observed | 2 | 0.000 | [0.00, 0.66] | 0.500 |
-| intention | once | private | 2 | 0.000 | [0.00, 0.66] | 0.500 |
-| proposal | every | observed | 2 | 0.000 | [0.00, 0.66] | 0.667 |
-| proposal | every | private | 2 | 0.000 | [0.00, 0.66] | 0.667 |
-| proposal | once | observed | 2 | 0.000 | [0.00, 0.66] | 0.500 |
-| proposal | once | private | 2 | 0.000 | [0.00, 0.66] | 0.500 |
+| free | every | observed | 24 | 0.833 | [0.64, 0.93] | 0.939 |
+| free | every | private | 24 | 0.958 | [0.80, 0.99] | 0.967 |
+| free | once | observed | 24 | 0.458 | [0.28, 0.65] | 0.719 |
+| free | once | private | 24 | 0.708 | [0.51, 0.85] | 0.839 |
+| intention | every | observed | 24 | 0.500 | [0.31, 0.69] | 0.711 |
+| intention | every | private | 24 | 0.667 | [0.47, 0.82] | 0.787 |
+| intention | once | observed | 24 | 0.417 | [0.24, 0.61] | 0.753 |
+| intention | once | private | 24 | 0.542 | [0.35, 0.72] | 0.775 |
+| proposal | every | observed | 24 | 0.833 | [0.64, 0.93] | 0.916 |
+| proposal | every | private | 24 | 0.833 | [0.64, 0.93] | 0.908 |
+| proposal | once | observed | 24 | 0.500 | [0.31, 0.69] | 0.735 |
+| proposal | once | private | 24 | 0.750 | [0.55, 0.88] | 0.887 |
 
 
 ## Marginal means by factor
@@ -30,23 +30,23 @@ Pre-registered in `paper3/prereg/p3_levers.md`.
 
 | level | n | lock-in | mean C |
 |---|---:|---:|---:|
-| free | 8 | 0.000 | 0.583 |
-| intention | 8 | 0.000 | 0.583 |
-| proposal | 8 | 0.000 | 0.583 |
+| free | 96 | 0.740 | 0.866 |
+| intention | 96 | 0.531 | 0.757 |
+| proposal | 96 | 0.729 | 0.861 |
 
 **throughput**
 
 | level | n | lock-in | mean C |
 |---|---:|---:|---:|
-| every | 12 | 0.000 | 0.667 |
-| once | 12 | 0.000 | 0.500 |
+| every | 144 | 0.771 | 0.872 |
+| once | 144 | 0.562 | 0.785 |
 
 **observability**
 
 | level | n | lock-in | mean C |
 |---|---:|---:|---:|
-| observed | 12 | 0.000 | 0.583 |
-| private | 12 | 0.000 | 0.583 |
+| observed | 144 | 0.590 | 0.796 |
+| private | 144 | 0.743 | 0.861 |
 
 
 ## Effect sizes in one ordering (the pre-registered test)
@@ -55,15 +55,15 @@ Partial eta-squared on mean cooperation, bootstrap 95% CI.
 
 | factor | partial eta2 | 95% CI |
 |---|---:|---|
-| throughput | 0.3333 | [nan, nan] |
-| expressiveness | 0.0000 | [nan, nan] |
-| observability | 0.0000 | [0.0000, 0.2739] |
+| expressiveness | 0.0415 | [0.0089, 0.1069] |
+| throughput | 0.0311 | [0.0037, 0.0873] |
+| observability | 0.0176 | [0.0005, 0.0638] |
 
-Observed ordering: throughput > expressiveness > observability
+Observed ordering: expressiveness > throughput > observability
 
-expressiveness / max(other) = **0.00x** (prediction required >= 3.0x)
+expressiveness / max(other) = **1.34x** (prediction required >= 3.0x)
 
-**Pre-registered ordinal prediction: NOT SUPPORTED**
+**Pre-registered ordinal prediction: PARTIAL (ordering holds, dominance ratio not met)**
 
 
 API error rate: 0.000 (excluded from behavioural metrics).
