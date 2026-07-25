@@ -350,6 +350,7 @@ for seed in range(6):
         order = present_order(seed, rnd, m)
         code_ids = [TOK.encode(c, add_special_tokens=False)[0] for c in m]
         inv = {v: k for k, v in m.items()}
+        coop_code = inv['C']
         for msg, bucket in [(None, coop_nomsg),
                             ("Let us both choose " + inv['C'] + ".", coop_msg)]:
             ids = TOK(build_action_prompt('A', [], m, msg, seed, rnd),
