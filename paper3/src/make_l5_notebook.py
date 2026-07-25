@@ -155,8 +155,14 @@ code(r"""
 #@title 3 · Checkpoint / ledger helpers (the resumability machinery)
 import json, hashlib, pathlib, os
 
+def _tag():
+    # Namespace every artefact by the model actually used. Without this, raising
+    # MODEL_ID would SKIP already-recorded units and report the old model's numbers
+    # under the new model's name -- a silent wrong answer.
+    return MODEL_ID.split('/')[-1].replace('.', '')
+
 def _ledger(name):
-    return WORK / 'results' / f'{name}.jsonl'
+    return WORK / 'results' / f'{_tag()}__{name}.jsonl'
 
 def done_keys(name):
     '''Keys already completed for this stage.'''
@@ -193,10 +199,10 @@ def load_results(name):
     return out
 
 def stage_done(name):
-    return (WORK / 'results' / f'{name}.done').exists()
+    return (WORK / 'results' / f'{_tag()}__{name}.done').exists()
 
 def mark_done(name):
-    (WORK / 'results' / f'{name}.done').write_text('ok')
+    (WORK / 'results' / f'{_tag()}__{name}.done').write_text('ok')
 
 def run_units(name, units, fn, desc=''):
     '''Run fn(unit) over units, skipping completed keys. Safe to re-invoke.'''
@@ -350,7 +356,16 @@ if len(kn) == 2:
     rd = k1/n1 - k0/n0
     lo = rd - math.sqrt((k1/n1-l1)**2 + (u0-k0/n0)**2)
     print(f'\ntext - none = {rd:+.3f}, lower bound {lo:+.3f}')
-    print('GATE:', 'PASS' if lo >= 0.15 else 'FAIL — raise MODEL_ID and re-run')
+    GATE_PASSED = lo >= 0.15
+    print('GATE:', 'PASS' if GATE_PASSED else 'FAIL')
+    if not GATE_PASSED:
+        raise SystemExit(
+            'GATE FAILED: this model does not respond to readable communication '
+            f'(text - none lower bound {lo:+.3f} < 0.15).\n'
+            'A null in L5-C would be a FLOOR EFFECT, not a result, so the remaining '
+            'cells are blocked on purpose.\n'
+            'Raise MODEL_ID (7B/14B need an A100, not a T4) and re-run from cell 2. '
+            'Ledgers are namespaced by model, so nothing stale will be reused.')
 """)
 
 code(r"""
