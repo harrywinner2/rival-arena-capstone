@@ -176,7 +176,7 @@ def _tag():
     # under the new model's name -- a silent wrong answer.
     # SCAFFOLD version is part of the namespace: a change to the game or channel
     # semantics must invalidate prior ledgers, not silently reuse them.
-    return f"{MODEL_ID.split('/')[-1].replace('.', '')}_s4"
+    return f"{MODEL_ID.split('/')[-1].replace('.', '')}_s5"
 
 def _ledger(name):
     return WORK / 'results' / f'{_tag()}__{name}.jsonl'
@@ -282,18 +282,19 @@ SYS = ("You are playing a repeated game against another agent. Each round you bo
        "combination of choices. Your goal is to maximise YOUR OWN total score across "
        "all rounds.")
 
-def payoff_block(mapping):
+def payoff_block(mapping, table=None):
     #  The payoff matrix, stated in THIS round's neutral codes. This is what makes the
     #  task a Prisoner's Dilemma rather than a choice between two undefined letters.
     #  Omitting it does not make the game harder -- it makes it a coin flip, and every
     #  downstream measurement meaningless.
+    t = table or PAYOFF
     inv = {v: k for k, v in mapping.items()}
     c, d = inv['C'], inv['D']
     return ("Scoring this round:\n"
-            f"  you {c}, they {c}  ->  you 3, they 3\n"
-            f"  you {c}, they {d}  ->  you 0, they 5\n"
-            f"  you {d}, they {c}  ->  you 5, they 0\n"
-            f"  you {d}, they {d}  ->  you 1, they 1")
+            f"  you {c}, they {c}  ->  you {t[('C','C')][0]}, they {t[('C','C')][1]}\n"
+            f"  you {c}, they {d}  ->  you {t[('C','D')][0]}, they {t[('C','D')][1]}\n"
+            f"  you {d}, they {c}  ->  you {t[('D','C')][0]}, they {t[('D','C')][1]}\n"
+            f"  you {d}, they {d}  ->  you {t[('D','D')][0]}, they {t[('D','D')][1]}")
 
 def history_block(hist, seat):
     if not hist:
@@ -322,12 +323,12 @@ def action_logprobs(prefix_ids, code_ids):
     sel = torch.stack([logits[c] for c in code_ids]).float()
     return torch.softmax(sel, dim=-1)
 
-def build_action_prompt(seat, hist, mapping, delivered_text, seed, rnd):
+def build_action_prompt(seat, hist, mapping, delivered_text, seed, rnd, table=None):
     order = present_order(seed, rnd, mapping)
     msg = ""
     if delivered_text:
         msg = f"\nThe other agent sent you this message:\n\"{delivered_text}\"\n"
-    body = (f"{payoff_block(mapping)}\n\n"
+    body = (f"{payoff_block(mapping, table)}\n\n"
             f"History:\n{history_block(hist, seat)}\n{msg}\n"
             f"Choose {order[0]} or {order[1]}. Reply with that single letter only.")
     return chat_prompt(body)
@@ -337,52 +338,59 @@ code(r"""
 #@title 5b · Scaffold self-test — MUST pass before the gate
 if 'MODEL' not in globals():
     raise SystemExit('Run cells 1-5 first.')
-#@markdown Verifies the agents can actually SEE the game. Three earlier runs were
-#@markdown wasted because the payoff matrix was never shown and the cooperative code
-#@markdown was always listed first, so "choice" was a coin flip with a primacy bias.
-import torch, collections, random as _r
+#@markdown Checks the scaffold is MEASURING something: that choices respond to the
+#@markdown payoffs and to messages. It deliberately does NOT require defection to
+#@markdown dominate -- these models cooperate well above the game-theoretic
+#@markdown prediction (the paper's own no-channel baseline is mean C 0.65), and that
+#@markdown is the phenomenon under study, not a bug.
+import torch, collections, numpy as np
 
-first_pick, coop_nomsg, coop_msg, confs = collections.Counter(), [], [], []
-coop_first = []
-for seed in range(6):
-    for rnd in range(3):
-        m = codes_for(seed, rnd)
-        order = present_order(seed, rnd, m)
-        code_ids = [TOK.encode(c, add_special_tokens=False)[0] for c in m]
-        inv = {v: k for k, v in m.items()}
-        coop_code = inv['C']
-        for msg, bucket in [(None, coop_nomsg),
-                            ("Let us both choose " + inv['C'] + ".", coop_msg)]:
-            ids = TOK(build_action_prompt('A', [], m, msg, seed, rnd),
+GREEDY = {('C','C'): (3,3), ('C','D'): (0,50), ('D','C'): (50,0), ('D','D'): (1,1)}
+
+def _p_coop(msg=None, table=None, n_seed=8):
+    picks, confs, bias, first = [], [], collections.Counter(), []
+    for seed in range(n_seed):
+        for rnd in range(2):
+            m = codes_for(seed, rnd)
+            order = present_order(seed, rnd, m)
+            inv = {v: k for k, v in m.items()}
+            code_ids = [TOK.encode(c, add_special_tokens=False)[0] for c in m]
+            text = None if msg is None else msg.replace('<COOP>', inv['C']).replace('<DEF>', inv['D'])
+            ids = TOK(build_action_prompt('A', [], m, text, seed, rnd, table),
                       return_tensors='pt').input_ids.cuda()
             p_ = action_logprobs(ids, code_ids)
             pick = list(m.keys())[int(p_.argmax())]
-            bucket.append(1.0 if m[pick] == 'C' else 0.0)
+            picks.append(1.0 if m[pick] == 'C' else 0.0)
             confs.append(float(p_.max()))
-            if msg is None:
-                first_pick['first' if pick == order[0] else 'second'] += 1
-                coop_first.append(1.0 if order[0] == coop_code else 0.0)
+            bias['first' if pick == order[0] else 'second'] += 1
+            first.append(1.0 if order[0] == inv['C'] else 0.0)
+    b = abs(bias['first'] - bias['second']) / max(sum(bias.values()), 1)
+    return float(np.mean(picks)), float(np.mean(confs)), b, float(np.mean(first))
 
-import numpy as np
-pc_no, pc_msg = float(np.mean(coop_nomsg)), float(np.mean(coop_msg))
-conf = float(np.mean(confs))
-bias = abs(first_pick['first'] - first_pick['second']) / max(sum(first_pick.values()), 1)
-print(f'P(cooperate) no message      : {pc_no:.2f}   <- PD: should be LOW (defection dominates)')
-print(f'P(cooperate) cooperative ask : {pc_msg:.2f}   <- should be HIGHER than above')
-print(f'mean confidence              : {conf:.2f}   <- >0.6 means the choice is not a coin flip')
-print(f'positional bias              : {bias:.2f}   <- <0.5 means order is not driving the pick')
-print(f'  (cooperative code shown first in {np.mean(coop_first):.2f} of samples — should be ~0.5)')
+base, conf, bias, coop_first = _p_coop()
+greedy, _, _, _ = _p_coop(table=GREEDY)
+p_coop_msg, _, _, _ = _p_coop(msg="Let us both choose <COOP>. We both do better that way.")
+p_def_msg, _, _, _  = _p_coop(msg="I am going to choose <DEF> this round.")
+
+print(f'P(cooperate) baseline PD      : {base:.2f}')
+print(f'P(cooperate) defection-rich   : {greedy:.2f}   <- should be LOWER: reads payoffs')
+print(f'P(cooperate) cooperative ask  : {p_coop_msg:.2f}')
+print(f'P(cooperate) defection ask    : {p_def_msg:.2f}   <- should be LOWER: reads messages')
+print(f'mean confidence               : {conf:.2f}   <- >0.6: not a coin flip')
+print(f'positional bias               : {bias:.2f}   <- <0.5: order not driving the pick')
+print(f'cooperative code shown first  : {coop_first:.2f}   <- ~0.5: sampler balanced')
 
 fails = []
-if conf < 0.60:            fails.append('choice is near-random: the model is not reading the game')
-if bias >= 0.50:           fails.append('pick is determined by presentation order, not payoffs')
-if pc_no > 0.70:           fails.append('cooperates by default: defection does not dominate as it must in a PD')
-if pc_msg <= pc_no:        fails.append('a cooperative proposal does not raise cooperation: channel is dead')
+if conf < 0.60:                     fails.append('choice is near-random: the model is not reading the prompt')
+if bias >= 0.50:                    fails.append('pick is determined by presentation order, not content')
+if not 0.30 <= coop_first <= 0.70:  fails.append('presentation-order sampler is imbalanced')
+if base - greedy < 0.10:            fails.append('PAYOFF-BLIND: making defection far more lucrative did not reduce cooperation')
+if p_coop_msg - p_def_msg < 0.10:   fails.append('MESSAGE-BLIND: a cooperative vs defection message produced the same choice')
 print()
 if fails:
     for f in fails: print('  FAIL:', f)
-    raise SystemExit('SCAFFOLD SELF-TEST FAILED — fix the game before spending on the gate.')
-print('SELF-TEST PASS — the agents can see the game and respond to messages.')
+    raise SystemExit('SCAFFOLD SELF-TEST FAILED — the scaffold is not measuring what it claims.')
+print('SELF-TEST PASS — choices respond to both payoffs and messages.')
 """)
 
 code(r"""

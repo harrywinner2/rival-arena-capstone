@@ -39,7 +39,7 @@ class _FakeTensor(list):
         return (1, len(self))
 
 
-def _stub_env():
+def _stub_env(seen):
     """Minimal stand-ins for the GPU/model surface the logic cells touch."""
     torch = types.ModuleType("torch")
 
@@ -56,9 +56,17 @@ def _stub_env():
     torch.__version__ = "stub"
 
     class _Tok:
+        # `seen` must be captured in __call__ itself: assigning tok.__call__ on the
+        # INSTANCE does not override the special-method lookup, which is done on the
+        # type. That silently left the tracker empty and made the sensitive stub look
+        # prompt-blind.
         eos_token_id = 0
 
+        def __init__(self, seen):
+            self.seen = seen
+
         def __call__(self, text, return_tensors=None):
+            self.seen.append(text)
             return types.SimpleNamespace(input_ids=_FakeTensor([1, 2, 3]))
 
         def encode(self, s, add_special_tokens=True):
@@ -70,18 +78,35 @@ def _stub_env():
         def apply_chat_template(self, msgs, tokenize=False, add_generation_prompt=True):
             return "\n".join(m["content"] for m in msgs) + "\n<assistant>"
 
-    # deterministic, payoff-blind stub: always prefers the FIRST code id
-    def _action_logprobs(prefix_ids, code_ids):
-        return _FakeTensor([0.7, 0.3])
-
-    return torch, _Tok(), _action_logprobs
+    return torch, _Tok(seen)
 
 
-def main() -> None:
+def make_scorer(mode, prompts):
+    """Stub scorers. code_ids[0] is always the cooperative code.
+
+    sensitive : reads the prompt — cooperates less when defection pays 50, and less
+                after a defection message. This is what a working model looks like.
+    blind     : ignores the prompt entirely.
+    """
+    def _scorer(prefix_ids, code_ids):
+        text = prompts[-1] if prompts else ""
+        if mode == "blind":
+            return _FakeTensor([0.9, 0.1])
+        p_coop = 0.85
+        if "they 50" in text or "you 50" in text:
+            p_coop = 0.20
+        if "going to choose" in text:
+            p_coop = 0.25
+        return _FakeTensor([p_coop, 1 - p_coop])
+    return _scorer
+
+
+def main(MODE: str = "sensitive") -> int:
     nb = json.loads(NB.read_text())
     cells = [c for c in nb["cells"] if c["cell_type"] == "code"]
 
-    torch, tok, action_logprobs = _stub_env()
+    seen_prompts: list = []
+    torch, tok = _stub_env(seen_prompts)
     sys.modules["torch"] = torch
 
     g: dict = {
@@ -108,7 +133,7 @@ def main() -> None:
                          if not l.lstrip().startswith("#@"))
         # the self-test needs the stubbed scorer and must not exit the harness
         body = body.replace("raise SystemExit(", "raise RuntimeError(")
-        g["action_logprobs"] = action_logprobs
+        g["action_logprobs"] = make_scorer(MODE, seen_prompts)
         try:
             exec(compile(body, title.strip() or "cell", "exec"), g)
             ran.append((title.strip(), "ok"))
@@ -124,9 +149,20 @@ def main() -> None:
         if flag == "FAIL":
             bad += 1
         print(f"  [{flag}] {title[:52]:52s} {status}")
-    print(f"\n{len(ran)} logic cells executed, {bad} with code faults")
-    sys.exit(1 if bad else 0)
+    verdict = next((st for t, st in ran if "self-test" in t.lower()), "")
+    passed = "verdict" not in verdict
+    print(f"\n[{MODE}] {len(ran)} cells executed, {bad} code faults, "
+          f"self-test {'PASSED' if passed else 'FAILED'}")
+    return 1 if bad else (0 if passed else 2)
 
 
 if __name__ == "__main__":
-    main()
+    # a working model must PASS; a prompt-blind one must FAIL. A check that cannot
+    # fail is not a check.
+    rc_sensitive = main("sensitive")
+    print()
+    rc_blind = main("blind")
+    ok = (rc_sensitive == 0) and (rc_blind == 2)
+    print(f"\nDISCRIMINATES: {ok}  (sensitive->{rc_sensitive}, blind->{rc_blind}; "
+          f"want 0 and 2)")
+    sys.exit(0 if ok else 1)
