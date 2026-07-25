@@ -106,7 +106,12 @@ async def run_match(
         messages: dict[str, str] = {}
         raw_messages: dict[str, str] = {}
         msg_scratch: dict[str, str] = {}
-        if cfg.has_message_phase:
+        # P3/P4 channel window: when spec.channel_window is set, the message phase only
+        # runs inside the inclusive round range; outside it the channel is closed for
+        # that round. Default None -> open every round (published behaviour, unchanged).
+        _win = getattr(spec, "channel_window", None)
+        _open = _win is None or (_win[0] <= round_index <= _win[1])
+        if cfg.has_message_phase and _open:
             tasks = {s: _llm_move_message(client, llm_models[s], spec, game, s, rounds)
                      for s in llm_models}
             results = await asyncio.gather(*tasks.values())

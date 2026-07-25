@@ -180,6 +180,7 @@ class MatchSpec:
     observe_actions: bool = True             # A6: when False, the OTHER seat's past actions are hidden in this seat's formatted history (own actions/payoffs unchanged). True -> current behaviour.
     state_observability: Optional[bool] = None  # A6: when not None, append an explicit common-knowledge line about whether the other can see this agent's past moves (True=can, False=cannot). None -> no line (current behaviour).
     message_restriction: Optional[str] = None    # C1: when set (e.g. "action_only"), the message-phase prompt appends a content restriction (the agent may state ONLY its own intended action this round, in its own words). None -> unchanged (current behaviour).
+    channel_window: Optional[tuple[int, int]] = None  # P3/P4: inclusive round range [lo, hi] in which the message phase runs; outside it the channel is closed for that round (agents neither author nor receive). None -> open every round (published behaviour, unchanged).
     paraphrase: bool = False
     canary: Optional[dict[str, str]] = None      # D1: seat -> private text injected into that seat's system prompt ONLY
     notes: str = ""

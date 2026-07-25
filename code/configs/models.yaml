@@ -113,7 +113,36 @@ models:
     tuning: instruction
 
 # Named pairs for the origin factor (A1 fixes one pair; A3 sweeps these).
+  # ---------------- Self-hosted (RunPod vLLM, Paper 3) ----------------
+  # provider != "openrouter" -> LLMClient passes api_key=None and litellm uses
+  # OPENAI_API_BASE. Precision is PINNED (bf16), unlike the hosted spine.
+  qwen-32b-local:
+    litellm_model: openai/Qwen/Qwen2.5-32B-Instruct
+    origin: chinese
+    family: qwen
+    provider: vllm
+    param_count: "32B"
+    quantization: "none (bf16)"
+    serving_backend: "vllm on A100-80GB"
+    context_length: 8192
+    tuning: instruction
+    prompt_language: en
+
+  qwen-14b-local:
+    litellm_model: openai/Qwen/Qwen2.5-14B-Instruct
+    origin: chinese
+    family: qwen
+    provider: vllm
+    param_count: "14B"
+    quantization: "none (bf16)"
+    serving_backend: "vllm on A100-80GB"
+    context_length: 8192
+    tuning: instruction
+    prompt_language: en
+
 pairs:
+  self_local:    [qwen-32b-local, qwen-32b-local]
+  self_local_14: [qwen-14b-local, qwen-14b-local]
   same_family:   [llama-70b, llama-70b]      # baseline (A1 uses two *checkpoints* ideally; P20)
   same_origin_cn: [qwen-72b, deepseek-v3]
   same_origin_west: [llama-70b, mistral-large]
