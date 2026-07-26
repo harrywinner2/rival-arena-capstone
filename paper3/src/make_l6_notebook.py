@@ -148,7 +148,7 @@ code(r"""
 #@title 2 · Configuration
 SENDER_MODEL   = "Qwen/Qwen2.5-14B-Instruct"  #@param ["Qwen/Qwen2.5-7B-Instruct","Qwen/Qwen2.5-14B-Instruct"]
 RECEIVER_MODEL = "same"  #@param ["same","Qwen/Qwen2.5-7B-Instruct","meta-llama/Llama-3.1-8B-Instruct"]
-SCAFFOLD       = "l6c"   # bump to invalidate every cached artefact
+SCAFFOLD       = "l6d"   # bump to invalidate every cached artefact
 #   l6b: Bertrand tabulates the FULL profit matrix (the diagonal-only version made it a
 #        coordination game -- K=0.686 with no channel); gate is two-sided.
 #   l6c: the latent payload is spliced into the MESSAGE slot, not appended after the
@@ -156,8 +156,13 @@ SCAFFOLD       = "l6c"   # bump to invalidate every cached artefact
 #        token oracle compares against the natural text prompt instead of against
 #        itself. Under l6b every latent arm INCLUDING the all-zero payload was displaced
 #        from `none` -- the signature of jamming the answer slot.
+#   l6d: matches are torch-seeded (nothing was reproducible before); GATE_SEEDS == 40 so
+#        the gate is no weaker than the experiment it guards; the gate verdict is
+#        per-game rather than an all-or-nothing halt.
 
-GATE_SEEDS   = 24   #@param {type:"integer"}
+GATE_SEEDS   = 40   #@param {type:"integer"}   # == MAIN_SEEDS: a gate weaker than the
+#   experiment it guards is incoherent. At 24 the Bertrand text effect (~-0.08) landed
+#   inside its own CI on one run and outside it on the next, from sampling noise alone.
 MAIN_SEEDS   = 40   #@param {type:"integer"}
 ROUNDS       = 12   #@param {type:"integer"}
 SNAPSHOTS    = 256  #@param {type:"integer"}
@@ -363,7 +368,20 @@ def action_prompt(kind, seat, hist, m, delivered, seed, rnd, rev=None):
             f"Choose one of {', '.join(order)}. Reply with that single letter only.")
     return chat(R_TOK, body)
 
-MSG_MARK = 'MSGSLOT'
+def seed_match(kind, seed):
+    '''Seed torch per match, keyed on (game, seed) and deliberately NOT on the arm.
+
+    Two things at once. It makes every match reproducible: until now the action draws
+    and the message sampling ran off the unseeded global RNG, so no run could be
+    reproduced, and two byte-identical text configurations differed by more than the
+    effect being measured (-0.089 vs -0.057 on the same Bertrand contrast). And because
+    arms sharing a seed now start from the same stream, the paired contrasts become
+    common-random-number comparisons, which is where the variance reduction comes from.'''
+    h = int(hashlib.md5(f'{kind}|{seed}'.encode()).hexdigest()[:8], 16)
+    torch.manual_seed(h)
+    return h
+
+MSG_MARK = '<<<MSGSLOT>>>'
 
 def action_prompt_split(kind, seat, hist, m, seed, rnd, rev=None):
     '''(pre, post) such that pre + <message> + post is EXACTLY the text-arm prompt.
@@ -551,6 +569,7 @@ if not stage_done('gate'):
     import numpy as np
 
     def play(kind, seed, arm, rounds=ROUNDS):
+        seed_match(kind, seed)
         rng = random.Random(seed); hist = []; coop = []; prices = []
         for rnd in range(rounds):
             m = (ipd_map if kind == 'ipd' else bert_map)(seed, rnd)
@@ -609,16 +628,27 @@ for kind, label in (('ipd', 'lock-in'), ('bertrand', 'K')):
               'price\n          invites undercutting, and a bare proposal cannot express '
               'the contingent\n          punishment that sustains a cartel. That is a '
               'finding, not a fault.')
+    DIRECTION[kind] = dict(diff=diff, lo=lo, hi=hi, ok=bool(moved))
     if not moved: gate_ok = False
-    DIRECTION[kind] = diff
 
 (WORK/'results'/f'{_tag()}__gate_direction.json').write_text(json.dumps(DIRECTION))
 print()
+# PER-GAME, because interpretability is per-game. Halting the whole notebook because one
+# game's channel effect is marginal throws away the other game's latent arms and both
+# games' text arms, which are unaffected. The verdict is recorded and cell 12 reads it,
+# so a failure cannot be quietly forgotten -- that is what the gate is actually for.
+if not any(v['ok'] for v in DIRECTION.values()):
+    raise SystemExit('GATE FAILED IN BOTH GAMES: the text channel has no effect '
+                     'distinguishable from zero anywhere, so nothing downstream is '
+                     'interpretable. Raise the model or lengthen the horizon.')
+for k, v in DIRECTION.items():
+    print(f'  {k:9s} latent arms will be {"INTERPRETABLE" if v["ok"] else "NOT interpretable"}'
+          f'  (text effect {v["diff"]:+.3f} [{v["lo"]:+.3f}, {v["hi"]:+.3f}])')
 if not gate_ok:
-    raise SystemExit('GATE FAILED: in at least one game the text channel has no effect '
-                     'distinguishable from zero, so a latent null there would be '
-                     'uninterpretable. Raise the model or lengthen the horizon.')
-print('GATE PASS — text moves behaviour in both games (see the sign of each diff).')
+    print('\nProceeding: the games that passed are still interpretable, and every text '
+          'arm is unaffected. Cell 12 will mark the failing game.')
+else:
+    print('\nGATE PASS — text moves behaviour in both games (see the sign of each diff).')
 """)
 
 code(r"""
@@ -865,6 +895,7 @@ ARMS = ['none', 'text_proposal', 'text_intention',
 def play_main(kind, seed, arm, rounds=ROUNDS):
     import numpy as np
     emb = R_MODEL.get_input_embeddings()
+    seed_match(kind, seed)
     rng = random.Random(seed); hist = []; coop = []; prices = []
     instr = PROPOSAL_INSTR if 'proposal' in arm else INTENTION_INSTR
     for rnd in range(rounds):
@@ -947,7 +978,17 @@ for kind, field, label in (('bertrand','value','collusion index K'),
         if c: print(f'  {a} - {b}: {c[0]:+.3f} [{c[1]:+.3f}, {c[2]:+.3f}]')
 
 print('\n===== DIRECTION-MATCHED SUMMARY =====')
+try:
+    GATE = json.loads((WORK/'results'/f'{_tag()}__gate_direction.json').read_text())
+except Exception:
+    GATE = {}
 for kind, field in (('bertrand','value'), ('ipd','lockin')):
+    g = GATE.get(kind)
+    if g and not g['ok']:
+        print(f'[{kind}] *** the capability gate did NOT clear in this game '
+              f'(text effect {g["diff"]:+.3f} [{g["lo"]:+.3f}, {g["hi"]:+.3f}]). Its '
+              f'latent arms are NOT interpretable: a null cannot be told apart from a '
+              f'channel that never moved anything. Text arms below are unaffected. ***')
     T = contrast(kind, 'text_proposal', 'none', field)
     L = contrast(kind, 'latent_proposal', 'none', field)
     C = contrast(kind, 'latent_proposal', 'latent_shuffled', field)
