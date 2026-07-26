@@ -168,7 +168,7 @@ code(r"""
 #@title 2 · Configuration
 SENDER_MODEL   = "Qwen/Qwen2.5-14B-Instruct"  #@param ["Qwen/Qwen2.5-7B-Instruct","Qwen/Qwen2.5-14B-Instruct"]
 RECEIVER_MODEL = "same"  #@param ["same","Qwen/Qwen2.5-7B-Instruct","meta-llama/Llama-3.1-8B-Instruct"]
-SCAFFOLD       = "l6e"   # bump to invalidate every cached artefact
+SCAFFOLD       = "l6f"   # bump to invalidate every cached artefact
 #   l6b: Bertrand tabulates the FULL profit matrix (the diagonal-only version made it a
 #        coordination game -- K=0.686 with no channel); gate is two-sided.
 #   l6c: the latent payload is spliced into the MESSAGE slot, not appended after the
@@ -182,6 +182,9 @@ SCAFFOLD       = "l6e"   # bump to invalidate every cached artefact
 #   l6e: the link was trained on TWELVE sentences with ~79M parameters and memorised
 #        them. Combinatorial corpus (3000 train + two held-out splits) and a
 #        generalisation ladder printed before any rollout spend.
+#   l6f: L7 showed a LINEAR map recovers the token at cos 0.986 / top-1 1.000 from the
+#        LAST layer, so the link is SOLVED by closed-form ridge on neutral text instead
+#        of distilled. Fixes the payload-scale bug for free; random control rescaled.
 
 GATE_SEEDS   = 40   #@param {type:"integer"}   # == MAIN_SEEDS: a gate weaker than the
 #   experiment it guards is incoherent. At 24 the Bertrand text effect (~-0.08) landed
@@ -189,6 +192,11 @@ GATE_SEEDS   = 40   #@param {type:"integer"}   # == MAIN_SEEDS: a gate weaker th
 MAIN_SEEDS   = 40   #@param {type:"integer"}
 ROUNDS       = 12   #@param {type:"integer"}
 SNAPSHOTS    = 256  #@param {type:"integer"}
+SRC_LAYER    = -1   #@param {type:"integer"}   # sender layer read by the link; -1 = last.
+#   L7 probed every layer of Qwen2.5-14B: a single linear map recovers the token from
+#   layer 48 (the last) at cosine 0.986 / top-1 1.000, and the proposed option at 100%.
+#   Depth is not the problem, so -1 is correct and there is nothing to tune here.
+LINK_MODE    = "ridge"  #@param ["ridge", "distill"]
 TRAIN_STEPS  = 3000 #@param {type:"integer"}
 BATCH        = 2    #@param {type:"integer"}
 LR           = 1e-4 #@param {type:"number"}
@@ -517,7 +525,7 @@ def gen_message(kind, seat, hist, m, instr, seed, rnd, want_states=False):
     if not want_states:
         return text, None
     mids = S_TOK(text, return_tensors='pt').input_ids.cuda()
-    h = S_MODEL(input_ids=mids, output_hidden_states=True).hidden_states[-1]
+    h = S_MODEL(input_ids=mids, output_hidden_states=True).hidden_states[SRC_LAYER]
     return text, h
 """)
 
@@ -853,48 +861,113 @@ def carrier_split(rng):
     full = chat(R_TOK, pre_b + MSG_MARK + post_b, sys=rng.choice(NEUTRAL_SYS))
     return full.split(MSG_MARK)
 
-def build_link(resume=True):
-    link = OuterLink(D_SRC, D_TGT).cuda().to(torch.float32)
-    opt = torch.optim.AdamW(link.parameters(), lr=LR)
-    step = 0
-    if resume and CKPT.exists():
-        st = torch.load(CKPT, map_location='cuda')
-        if st['link']['W1.weight'].shape[0] != D_SRC:
-            raise SystemExit(f'Checkpoint dim {st["link"]["W1.weight"].shape[0]} != '
-                             f'{D_SRC}. Refusing a mismatched adapter.')
-        link.load_state_dict(st['link']); opt.load_state_dict(st['opt']); step = st['step']
-        print(f'resumed from step {step}')
-    return link, opt, step
+# ---- the link ---------------------------------------------------------------------
+# L7 settled what three L6 runs could not. A single LINEAR map takes layer-48 sender
+# states to the receiver's input embedding of the same token at cosine 0.986, top-1
+# 1.000, and recovers the proposed option at 100% -- at every depth probed. The
+# information was always fully present; distillation simply never found the map, with
+# loss still oscillating 0.11-5.32 after 3000 steps.
+#
+# So stop distilling and solve for it. Ridge also removes the scale bug for free:
+# regressing ONTO real embeddings puts the payload at the embedding norm, where the old
+# LayerNorm output sat about 70x too large -- which is what "a generic blob that
+# shuffling does not change" looks like from the receiver's side.
+RIDGE_LAMS = [1e-1, 1e0, 1e1, 1e2, 1e3, 1e4]
+EMB_W = R_MODEL.get_input_embeddings().weight.detach().float()
+EMB_N = torch.nn.functional.normalize(EMB_W, dim=-1).to(DTYPE)
+EMB_RMS = float(EMB_W.pow(2).mean().sqrt())
 
-if stage_done('train'):
-    LINK, _, _ = build_link(); print('training already complete')
+class RidgeLink:
+    def __init__(self, W): self.W = W
+    def __call__(self, h): return h.to(self.W.dtype) @ self.W
+
+@torch.no_grad()
+def sender_rows(msgs):
+    H, T, O = [], [], []
+    for i, m in enumerate(msgs):
+        ids = S_TOK(m, return_tensors='pt', add_special_tokens=False).input_ids.cuda()
+        h = S_MODEL(input_ids=ids, output_hidden_states=True).hidden_states[SRC_LAYER][0]
+        H.append(h.float()); T.append(ids[0]); O.append(torch.full((ids.shape[1],), i))
+    return torch.cat(H), torch.cat(T), torch.cat(O).cuda()
+
+def fit_ridge(msgs, n_fit=400, seed=5):
+    r = random.Random(seed); ms = r.sample(list(msgs), min(n_fit, len(msgs)))
+    cut = int(len(ms) * 0.85)
+    X, tok, own = sender_rows(ms)
+    Y = EMB_W[tok]
+    tr = own < cut; va = ~tr
+    G, B = X[tr].T @ X[tr], X[tr].T @ Y[tr]
+    I = torch.eye(G.shape[0], device=G.device)
+    best = None
+    for lam in RIDGE_LAMS:
+        W = torch.linalg.solve(G + lam * I, B)
+        c = torch.nn.functional.cosine_similarity(X[va] @ W, Y[va], -1).mean().item()
+        print(f'   lambda {lam:>7.1e}   val cosine {c:.4f}')
+        if best is None or c > best[1]: best = (lam, c, W)
+    print(f'   chosen lambda {best[0]:.1e}, val cosine {best[1]:.4f}')
+    return best[2]
+
+@torch.no_grad()
+def recon_top1(msgs, link, n=40):
+    '''Fraction of positions whose nearest vocabulary embedding is the right token.'''
+    X, tok, _ = sender_rows(list(msgs)[:n])
+    P = torch.nn.functional.normalize(link(X), dim=-1).to(DTYPE)
+    hit = 0
+    for i in range(0, len(P), 128):
+        hit += ((P[i:i+128] @ EMB_N.T).argmax(-1) == tok[i:i+128]).sum().item()
+    return hit / len(P)
+
+if stage_done('link') and CKPT.exists():
+    LINK = RidgeLink(torch.load(CKPT, map_location='cuda')['W']); print('link loaded')
+elif LINK_MODE == 'ridge':
+    print('fitting the link by closed-form ridge on neutral text (no game data):')
+    _W = fit_ridge(NEUTRAL)
+    LINK = RidgeLink(_W); torch.save({'W': _W}, CKPT); mark_done('link')
 else:
-    LINK, OPT, step = build_link()
-    emb = R_MODEL.get_input_embeddings()
-    rng = random.Random(0); t0 = time.time()
-    while step < TRAIN_STEPS:
+    LINK = OuterLink(D_SRC, D_TGT).cuda().float()
+    OPT = torch.optim.AdamW(LINK.parameters(), lr=LR); step = 0; t0 = time.time()
+    emb = R_MODEL.get_input_embeddings(); rng = random.Random(0)
+    while step < TRAIN_STEPS:                      # kept for the learned-vs-solved contrast
         losses = []
         for _ in range(BATCH):
-            msg = rng.choice(NEUTRAL)
-            pre, post = carrier_split(rng)
+            msg = rng.choice(NEUTRAL); pre, post = carrier_split(rng)
             with torch.no_grad():
                 s_ids = S_TOK(msg, return_tensors='pt').input_ids.cuda()
-                h = S_MODEL(input_ids=s_ids, output_hidden_states=True).hidden_states[-1]
+                h = S_MODEL(input_ids=s_ids, output_hidden_states=True).hidden_states[SRC_LAYER]
                 r_ids = R_TOK(msg, return_tensors='pt',
                               add_special_tokens=False).input_ids.cuda()
-                # TEACHER: same carrier, message as TEXT, spliced at the SAME position
-                t_log = R_MODEL(inputs_embeds=splice(pre, emb(r_ids), post, emb)
-                                ).logits[:, -1].float()
-            s_log = R_MODEL(inputs_embeds=splice(pre, LINK(h.float()), post, emb)
-                            ).logits[:, -1].float()
+                t_log = R_MODEL(inputs_embeds=splice(pre, emb(r_ids), post, emb)).logits[:, -1].float()
+            s_log = R_MODEL(inputs_embeds=splice(pre, LINK(h.float()), post, emb)).logits[:, -1].float()
             losses.append(F.kl_div(F.log_softmax(s_log, -1), F.softmax(t_log, -1),
                                    reduction='batchmean'))
         loss = torch.stack(losses).mean()
         OPT.zero_grad(); loss.backward(); OPT.step(); step += 1
         if step % CKPT_EVERY == 0 or step == TRAIN_STEPS:
-            torch.save({'link': LINK.state_dict(), 'opt': OPT.state_dict(), 'step': step}, CKPT)
             print(f'step {step}/{TRAIN_STEPS} loss {loss.item():.4f} ({time.time()-t0:.0f}s)')
-    mark_done('train'); print('training complete')
+    mark_done('link')
+
+# ---- does a map fitted on NEUTRAL PROSE reconstruct GAME messages? ------------------
+# The one thing L7 could not answer: its option probe was fitted on proposal-form
+# messages, not on neutral text. This is the transfer the entire experiment rests on.
+print('\ntoken reconstruction (top-1 nearest vocabulary embedding):')
+print(f'  held-out neutral sentences  {recon_top1(HELD_SENT, LINK):.3f}')
+print(f'  held-out neutral patterns   {recon_top1(HELD_TMPL, LINK):.3f}')
+_gm = []
+for i in range(24):
+    k = 'bertrand' if i % 2 else 'ipd'
+    sd = SEED_OFFSET + 7000 + i
+    _gm.append(gen_message(k, 'A', [], (bert_map if i % 2 else ipd_map)(sd, 0),
+                           PROPOSAL_INSTR, sd, 0)[0])
+_g_acc = recon_top1(_gm, LINK)
+print(f'  REAL GAME MESSAGES          {_g_acc:.3f}   <-- the transfer that matters')
+_X, _, _ = sender_rows(_gm[:8])
+print(f'\npayload RMS {float(LINK(_X).pow(2).mean().sqrt()):.4f}  vs  embedding RMS '
+      f'{EMB_RMS:.4f}   (the l6e link sat ~70x high here)')
+if _g_acc < 0.50:
+    stop_now('The link does not reconstruct real game messages.',
+             f'Token top-1 on game messages is {_g_acc:.3f}. A map fitted on neutral prose\n'
+             'does not transfer to the game distribution, so the latent arms would again\n'
+             'measure a broken channel rather than a representational one.')
 
 # ---- generalisation ladder: where does the link stop working? ----------------------
 # Four rungs, each harder than the last. Run here, BEFORE any further GPU time goes to
@@ -908,7 +981,7 @@ def neutral_kl(msgs, payload_fn, n=48, seed=3):
     for msg in (msgs if len(msgs) <= n else r.sample(list(msgs), n)):
         pre, post = carrier_split(r)
         s_ids = S_TOK(msg, return_tensors='pt').input_ids.cuda()
-        h = S_MODEL(input_ids=s_ids, output_hidden_states=True).hidden_states[-1]
+        h = S_MODEL(input_ids=s_ids, output_hidden_states=True).hidden_states[SRC_LAYER]
         r_ids = R_TOK(msg, return_tensors='pt',
                       add_special_tokens=False).input_ids.cuda()
         t = R_MODEL(inputs_embeds=splice(pre, emb(r_ids), post, emb)).logits[:, -1].float()
@@ -1009,12 +1082,16 @@ def deployment_fidelity(payload_fn, n=128):
             {g: dict(kl=mean(kls[g]), top1=mean(agree[g])) for g in ('ipd', 'bertrand')})
 
 if not stage_done('deploy_fid'):
+    # scale-matched random linear map. The old control was an untrained
+    # OuterLink, whose LayerNorm output sits ~70x above the embedding norm --
+    # unfairly bad now that the real payload is at the right scale.
+    _RND_W = torch.randn(D_SRC, D_TGT, device='cuda') / (D_SRC ** 0.5)
     variants = {
       'token oracle': lambda h, t, e: e(t),
       'trained':      lambda h, t, e: LINK(h),
       'shuffled':     lambda h, t, e: LINK(h)[:, torch.randperm(h.shape[1])],
       'zero':         lambda h, t, e: torch.zeros_like(LINK(h)),
-      'random':       lambda h, t, e: OuterLink(D_SRC, D_TGT).cuda().float()(h),
+      'random':       lambda h, t, e: (h @ _RND_W) * (EMB_RMS / (h @ _RND_W).pow(2).mean().sqrt()),
       'NO MESSAGE':   None,   # scale: how far the real message moves the action at all
     }
     rows = {}
