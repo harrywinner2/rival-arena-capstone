@@ -48,21 +48,33 @@ def _softmax(xs):
 
 # ---------------------------------------------------------------- prompt parsing
 DIAG_IPD = re.compile(r"you (\w+), they (\w+)\s+->\s+you (-?\d+), they (-?\d+)")
-ROW_BERT = re.compile(r"(\w+): price (\d+)\s+->\s+you earn (\d+)")
+PRICE_MAP = re.compile(r"Prices: (.+)")
 PROPOSED = re.compile(r"[Ll]et us both choose (\w+)\.")
 ORDER = re.compile(r"Choose one of ([^.]+)\.")
 
 
+def bert_profit(mine, theirs, cost=8, a=30):
+    q = max(0, a - mine)
+    if mine < theirs:
+        return (mine - cost) * q
+    if mine == theirs:
+        return (mine - cost) * q / 2
+    return 0.0
+
+
 def read_prompt(prompt, letters):
     """Recover what a real model would have to read off the rendered prompt."""
-    diag = {}
+    diag, price = {}, {}
     for a, b, mine, _ in DIAG_IPD.findall(prompt):
         if a == b:
             diag[a] = float(mine)
-    price = {}
-    for lab, p, earn in ROW_BERT.findall(prompt):
-        diag[lab] = float(earn)
-        price[lab] = int(p)
+    pm = PRICE_MAP.search(prompt)
+    if pm:
+        for part in pm.group(1).split(','):
+            lab, p = part.split('=')
+            price[lab.strip()] = int(p)
+        # score by the both-post-it profit, which the rendered matrix states
+        diag = {L: bert_profit(price[L], price[L]) for L in price}
     m = PROPOSED.search(prompt)
     order = [s.strip() for s in ORDER.search(prompt).group(1).split(',')]
     return dict(diag={k: diag.get(k, 0.0) for k in letters},
