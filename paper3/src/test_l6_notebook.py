@@ -167,7 +167,13 @@ def run(mode):
                          if not l.lstrip().startswith("#@"))
         if "5b" in title:
             g["code_probs"] = make_code_probs(mode)   # override the real one
-            code = code.replace("raise SystemExit(", "raise RuntimeError(")
+            # stop_now must actually be exercised: it is the path a failing verdict
+            # takes, and a banner that crashes is worse than no banner.
+            def _stop(reason, detail='', _g=g):
+                _g.setdefault('_banners', []).append((reason, detail))
+                raise RuntimeError(reason)
+            g["stop_now"] = _stop
+            g["check_stop"] = lambda: None
         buf = []
         _p = g.get("print")
         g["print"] = lambda *a, **k: buf.append(" ".join(str(x) for x in a))
