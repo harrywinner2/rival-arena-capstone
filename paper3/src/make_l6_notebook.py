@@ -148,7 +148,7 @@ code(r"""
 #@title 2 · Configuration
 SENDER_MODEL   = "Qwen/Qwen2.5-14B-Instruct"  #@param ["Qwen/Qwen2.5-7B-Instruct","Qwen/Qwen2.5-14B-Instruct"]
 RECEIVER_MODEL = "same"  #@param ["same","Qwen/Qwen2.5-7B-Instruct","meta-llama/Llama-3.1-8B-Instruct"]
-SCAFFOLD       = "l6d"   # bump to invalidate every cached artefact
+SCAFFOLD       = "l6e"   # bump to invalidate every cached artefact
 #   l6b: Bertrand tabulates the FULL profit matrix (the diagonal-only version made it a
 #        coordination game -- K=0.686 with no channel); gate is two-sided.
 #   l6c: the latent payload is spliced into the MESSAGE slot, not appended after the
@@ -159,6 +159,9 @@ SCAFFOLD       = "l6d"   # bump to invalidate every cached artefact
 #   l6d: matches are torch-seeded (nothing was reproducible before); GATE_SEEDS == 40 so
 #        the gate is no weaker than the experiment it guards; the gate verdict is
 #        per-game rather than an all-or-nothing halt.
+#   l6e: the link was trained on TWELVE sentences with ~79M parameters and memorised
+#        them. Combinatorial corpus (3000 train + two held-out splits) and a
+#        generalisation ladder printed before any rollout spend.
 
 GATE_SEEDS   = 40   #@param {type:"integer"}   # == MAIN_SEEDS: a gate weaker than the
 #   experiment it guards is incoherent. At 24 the Bertrand text effect (~-0.08) landed
@@ -166,7 +169,7 @@ GATE_SEEDS   = 40   #@param {type:"integer"}   # == MAIN_SEEDS: a gate weaker th
 MAIN_SEEDS   = 40   #@param {type:"integer"}
 ROUNDS       = 12   #@param {type:"integer"}
 SNAPSHOTS    = 256  #@param {type:"integer"}
-TRAIN_STEPS  = 1200 #@param {type:"integer"}
+TRAIN_STEPS  = 3000 #@param {type:"integer"}
 BATCH        = 2    #@param {type:"integer"}
 LR           = 1e-4 #@param {type:"number"}
 CKPT_EVERY   = 50   #@param {type:"integer"}
@@ -682,20 +685,71 @@ import torch.nn.functional as F
 
 CKPT = WORK / 'ckpt' / f'{_tag()}__link.pt'
 
-NEUTRAL = [
- "Could you summarise the main argument in two sentences?",
- "Please double-check the totals in the third column.",
- "I think the second option is clearer for a first-time reader.",
- "Let us move the meeting to Thursday if that suits you.",
- "The draft reads well; the introduction could be tightened.",
- "Can you send the revised figures before the deadline?",
- "I would suggest reordering the sections for better flow.",
- "The results look consistent with what we expected.",
- "Would it help if I prepared a short outline first?",
- "Thanks for the update, I will review it this afternoon.",
- "Shall we split the remaining items between us?",
- "I have marked the two places that still need a citation.",
+# The l6d link had ~79M parameters (three d x d matrices at d=5120) and was trained on
+# TWELVE sentences. It memorised them -- training loss 0.28, deployment KL 0.32, which is
+# WORSE than sending no message at all (0.19). A held-out split would have shown that in
+# minutes; there wasn't one. Now: a combinatorial corpus in the thousands, split three
+# ways so the failure mode is localisable rather than guessable.
+SUBJ = ['the report', 'the draft', 'the schedule', 'the budget', 'the summary',
+        'the proposal', 'the agenda', 'the invoice', 'the transcript', 'the outline',
+        'the appendix', 'the memo', 'the slide deck', 'the spreadsheet', 'the roster',
+        'the manuscript', 'the itinerary', 'the checklist', 'the contract', 'the survey']
+ADJ = ['clear', 'incomplete', 'concise', 'confusing', 'thorough', 'premature', 'helpful',
+       'outdated', 'accurate', 'ambitious', 'readable', 'inconsistent', 'promising',
+       'repetitive', 'careful', 'unfinished']
+ACT = ['review', 'revise', 'shorten', 'circulate', 'approve', 'postpone', 'annotate',
+       'summarise', 'proofread', 'reformat', 'archive', 'translate', 'expand', 'sign off on']
+WHEN = ['today', 'tomorrow', 'this afternoon', 'before Friday', 'next week',
+        'after the call', 'by the end of the month', 'once the data lands',
+        'first thing Monday', 'when you have a moment']
+WHO = ['Priya', 'the reviewer', 'the client', 'my colleague', 'the editor', 'the team',
+       'the auditor', 'our supervisor', 'the new analyst', 'the working group']
+
+TEMPLATES = [
+ 'I think {subj} is {adj}; could you {act} it {when}?',
+ 'Could you {act} {subj} {when}? {who} asked about it.',
+ '{who} found {subj} rather {adj}, so I will {act} it {when}.',
+ 'Would it help if I were to {act} {subj} {when}?',
+ '{subj} still looks {adj} to me. Shall we {act} it {when}?',
+ 'Please {act} {subj} {when} and let {who} know.',
+ 'I have asked {who} to {act} {subj} {when}.',
+ 'Between us, {subj} is {adj}; I would rather {act} it {when}.',
+ 'Thanks for flagging {subj} -- I will {act} it {when}.',
+ '{who} says {subj} is {adj}. Do you want to {act} it {when}?',
+ 'We should {act} {subj} {when}, otherwise {who} will be waiting.',
+ 'My sense is that {subj} is {adj} enough to {act} {when}.',
+ 'Can you {act} {subj} {when}, or is that too tight?',
+ 'I marked the parts of {subj} that seemed {adj}; {who} can {act} them {when}.',
+ 'If {subj} reads as {adj} to you as well, let us {act} it {when}.',
+ 'Nothing urgent, but {subj} is {adj} and someone should {act} it {when}.',
+ 'For what it is worth, I would {act} {subj} {when} rather than later.',
+ '{who} and I disagree about whether {subj} is {adj}; we will {act} it {when}.',
+ 'Remind me to {act} {subj} {when} -- {who} thinks it is {adj}.',
+ 'Having reread it, {subj} is less {adj} than I said; I will {act} it {when}.',
 ]
+
+def _corpus(templates, n, seed):
+    r = random.Random(seed); out = set(); guard = 0
+    while len(out) < n and guard < n * 60:
+        out.add(r.choice(templates).format(
+            subj=r.choice(SUBJ), adj=r.choice(ADJ), act=r.choice(ACT),
+            when=r.choice(WHEN), who=r.choice(WHO)))
+        guard += 1
+    return sorted(out)
+
+# Two held-out sets, because "unseen sentence" and "unseen sentence pattern" are
+# different generalisation demands and the gap between them says which one is failing.
+_SEEN_T, _NEW_T = TEMPLATES[:16], TEMPLATES[16:]
+_pool     = _corpus(_SEEN_T, 3400, 7)
+random.Random(23).shuffle(_pool)   # _corpus returns sorted; slicing a sorted pool would
+#   put the alphabetical tail in the held-out set, and since a template fixes a
+#   sentence's opening words that tail is template-correlated -- the "unseen sentence"
+#   rung would quietly have become a second "unseen pattern" rung.
+NEUTRAL   = _pool[:3000]     # train
+HELD_SENT = _pool[3000:3200] # unseen sentences, seen patterns
+HELD_TMPL = _corpus(_NEW_T, 200, 11)   # unseen patterns entirely
+print(f'corpus: {len(NEUTRAL)} train | {len(HELD_SENT)} held-out sentences | '
+      f'{len(HELD_TMPL)} held-out patterns')
 # Carriers are CHAT-TEMPLATED with a message slot and a trailing instruction, so the
 # payload sits at the same relative position it will occupy in the game: inside the user
 # turn, before the instruction and the assistant marker. Training at a raw-text position
@@ -761,6 +815,42 @@ else:
             torch.save({'link': LINK.state_dict(), 'opt': OPT.state_dict(), 'step': step}, CKPT)
             print(f'step {step}/{TRAIN_STEPS} loss {loss.item():.4f} ({time.time()-t0:.0f}s)')
     mark_done('train'); print('training complete')
+
+# ---- generalisation ladder: where does the link stop working? ----------------------
+# Four rungs, each harder than the last. Run here, BEFORE any further GPU time goes to
+# snapshots and rollouts, because the shape of this table decides whether the latent
+# arms can mean anything -- and it costs a couple of minutes.
+import numpy as np
+
+@torch.no_grad()
+def neutral_kl(msgs, payload_fn, n=48, seed=3):
+    r = random.Random(seed); emb = R_MODEL.get_input_embeddings(); ks = []
+    for msg in (msgs if len(msgs) <= n else r.sample(list(msgs), n)):
+        pre, post = carrier_split(r)
+        s_ids = S_TOK(msg, return_tensors='pt').input_ids.cuda()
+        h = S_MODEL(input_ids=s_ids, output_hidden_states=True).hidden_states[-1]
+        r_ids = R_TOK(msg, return_tensors='pt',
+                      add_special_tokens=False).input_ids.cuda()
+        t = R_MODEL(inputs_embeds=splice(pre, emb(r_ids), post, emb)).logits[:, -1].float()
+        p = payload_fn(h.float(), r_ids, emb)
+        s = R_MODEL(inputs_embeds=splice(pre, p, post, emb)).logits[:, -1].float()
+        ks.append(float(F.kl_div(F.log_softmax(s, -1), F.softmax(t, -1),
+                                 reduction='batchmean')))
+    return float(np.mean(ks))
+
+PAYLOADS = {'trained':  lambda h, t, e: LINK(h),
+            'zero':     lambda h, t, e: torch.zeros_like(LINK(h)),
+            'shuffled': lambda h, t, e: LINK(h)[:, torch.randperm(h.shape[1])]}
+print(f"\n{'rung':28s} " + '  '.join(f'{k:>9s}' for k in PAYLOADS))
+for label, msgs in (('train sentences (seen)', NEUTRAL),
+                    ('held-out sentences',     HELD_SENT),
+                    ('held-out patterns',      HELD_TMPL)):
+    vals = {k: neutral_kl(msgs, fn) for k, fn in PAYLOADS.items()}
+    flag = '' if vals['trained'] < 0.5 * min(vals['zero'], vals['shuffled']) else '  <-- no better than inert'
+    print(f'{label:28s} ' + '  '.join(f'{vals[k]:9.4f}' for k in PAYLOADS) + flag)
+print('(full-vocab KL against the same carrier with the message as text; lower is better.'
+      '\n cell 10 adds the fourth rung -- real game messages -- which is the one that '
+      'counts.)')
 """)
 
 code(r"""
