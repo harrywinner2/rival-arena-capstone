@@ -186,6 +186,40 @@ def run(mode):
     return verdict, out
 
 
+def check_splice():
+    """pre + <message> + post must reconstruct the text-arm prompt EXACTLY, and the
+    marker must not survive anywhere. If the splice point drifts, the latent payload
+    stops being at matched placement and every latent arm becomes uninterpretable --
+    which is exactly what happened under scaffold l6b."""
+    g = {"__name__": "__main__", "torch": _torch(), "hashlib": hashlib,
+         "R_TOK": _Tok(), "S_TOK": _Tok(), "PRICES": list(PRICES), "COST": 8,
+         "DEMAND_A": 30, "P_COMP": 8, "P_MONO": 19, "PAYOFF": dict(PAYOFF_BASE)}
+    sys.modules["torch"] = g["torch"]
+    for _, body in notebook_cells():
+        t = next((l for l in body.splitlines() if "#@title" in l), "")
+        if t.startswith("#@title 5 "):
+            exec(compile("\n".join(l for l in body.splitlines()
+                                   if not l.lstrip().startswith("#@")), "c5", "exec"), g)
+    bad = []
+    for kind in ("ipd", "bertrand"):
+        for seed in range(6):
+            m = g["ipd_map" if kind == "ipd" else "bert_map"](seed, 0)
+            hist = [{"A": "C", "B": "D", "map": m}] if kind == "ipd" else []
+            for msg in ("Let us both choose A.", 'He said "no" -- odd.', ""):
+                want = g["action_prompt"](kind, "A", hist, m, msg or None, seed, 0)
+                pre, post = g["action_prompt_split"](kind, "A", hist, m, seed, 0)
+                got = pre + msg + post
+                if msg and got != want:
+                    bad.append(f"{kind}/{seed}: splice != natural prompt")
+                if g["MSG_MARK"] in pre + post:
+                    bad.append(f"{kind}/{seed}: marker leaked into the prompt")
+    print("--- splice reconstruction ---")
+    for b in bad[:5]:
+        print("   ", b)
+    print(f"    => {'PASS' if not bad else f'FAIL ({len(bad)})'}\n")
+    return not bad
+
+
 EXPECT = {
     'sensitive':    None,
     'msg_blind':    'MESSAGE-BLIND',
@@ -195,7 +229,7 @@ EXPECT = {
 
 
 def main() -> int:
-    ok = True
+    ok = check_splice()
     for mode, want in EXPECT.items():
         verdict, lines = run(mode)
         body = "\n".join(lines)

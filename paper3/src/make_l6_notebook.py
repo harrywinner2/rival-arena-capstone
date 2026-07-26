@@ -55,13 +55,38 @@ that communicates.
 
 ### What L6 adds
 
-1. **Deployment-matched fidelity gate** on frozen *game* snapshots, with an exact-token
-   oracle that must read ~0.000 KL. **Nothing downstream is interpretable until it
-   passes.** This is the control that caught the receiver-layout confound in L4.
+1. **Deployment-matched fidelity gate** on frozen *game* snapshots, with a token oracle
+   that splices the real message tokens into the message slot and must reproduce the
+   ordinary text prompt. **Nothing downstream is interpretable until it passes.**
 2. **Bertrand pricing with the collusion index $K$**, alongside IPD — so the outcome
    measured is collusion, not just cooperation.
-3. **Context-randomised link training** at matched layout.
+3. **Context-randomised link training** at the deployment position.
 4. Configurable seeds, defaulting to a confirmatory 40.
+
+### What the `l6b` run found, and why `l6c` exists
+
+The first full run produced a clean-looking result that was an artefact, and the two
+faults are worth stating because they are easy to repeat.
+
+*The payload was in the wrong slot.* `action_prompt` ends with the assistant generation
+marker, and the latent arms appended the payload **after** it — so the payload occupied
+the answer position, not the message position, while the text arm put its message inside
+the user turn. The arms were never at matched placement. The signature was unmistakable
+in hindsight: every latent arm was displaced from `none` in a game-specific direction
+(Bertrand $+0.12$ to $+0.18$, IPD $-0.15$ to $-0.23$) **including the all-zero payload**,
+and `latent_proposal` did not separate from `latent_zero` in either game. An inert
+payload displacing behaviour that far is jamming, not communicating. The same flaw
+explains the anomaly L5 flagged and could not account for.
+
+*The oracle could not fail.* For the oracle variant the payload function returned
+`emb(t_ids)` — the very tensor the reference distribution was computed from. It compared
+a tensor with itself, reported KL $=0$, and printed "layout is correct" while the layout
+was wrong. A control that cannot fail is not a control.
+
+`l6c` splices the payload into the message slot, trains the link at that same position
+under chat-templated neutral carriers, and scores every payload against the **natural
+text prompt**, so the oracle is a genuinely different computation from the thing it
+checks.
 
 ### A note on architecture
 
@@ -123,9 +148,14 @@ code(r"""
 #@title 2 · Configuration
 SENDER_MODEL   = "Qwen/Qwen2.5-14B-Instruct"  #@param ["Qwen/Qwen2.5-7B-Instruct","Qwen/Qwen2.5-14B-Instruct"]
 RECEIVER_MODEL = "same"  #@param ["same","Qwen/Qwen2.5-7B-Instruct","meta-llama/Llama-3.1-8B-Instruct"]
-SCAFFOLD       = "l6b"   # bump to invalidate every cached artefact
+SCAFFOLD       = "l6c"   # bump to invalidate every cached artefact
 #   l6b: Bertrand tabulates the FULL profit matrix (the diagonal-only version made it a
 #        coordination game -- K=0.686 with no channel); gate is two-sided.
+#   l6c: the latent payload is spliced into the MESSAGE slot, not appended after the
+#        assistant generation marker; the link is trained at that same position; and the
+#        token oracle compares against the natural text prompt instead of against
+#        itself. Under l6b every latent arm INCLUDING the all-zero payload was displaced
+#        from `none` -- the signature of jamming the answer slot.
 
 GATE_SEEDS   = 24   #@param {type:"integer"}
 MAIN_SEEDS   = 40   #@param {type:"integer"}
@@ -264,9 +294,9 @@ def present_order(seed, rnd, labels, rev=None):
     ls = list(labels)
     return ls[::-1] if rev else ls
 
-def chat(tok, user):
+def chat(tok, user, sys=None):
     return tok.apply_chat_template(
-        [{"role": "system", "content": SYS}, {"role": "user", "content": user}],
+        [{"role": "system", "content": sys or SYS}, {"role": "user", "content": user}],
         tokenize=False, add_generation_prompt=True)
 
 # ---------- IPD ----------
@@ -332,6 +362,35 @@ def action_prompt(kind, seat, hist, m, delivered, seed, rnd, rev=None):
     body = (f"{block}\n\nHistory:\n{history_block(hist, seat, kind)}\n{msg}\n"
             f"Choose one of {', '.join(order)}. Reply with that single letter only.")
     return chat(R_TOK, body)
+
+MSG_MARK = 'MSGSLOT'
+
+def action_prompt_split(kind, seat, hist, m, seed, rnd, rev=None):
+    '''(pre, post) such that pre + <message> + post is EXACTLY the text-arm prompt.
+
+    A latent payload must be spliced where the message text goes -- inside the user
+    turn, ahead of the instruction and the assistant marker. The first version appended
+    it after the whole chat-templated prompt, which ends with the generation marker, so
+    the payload landed in the ANSWER slot. Every latent arm then shifted away from
+    `none` in a game-specific direction, the all-zero payload included, which is what
+    jamming the answer slot looks like -- not what a channel looks like.'''
+    full = action_prompt(kind, seat, hist, m, MSG_MARK, seed, rnd, rev=rev)
+    pre, post = full.split(MSG_MARK)
+    return pre, post
+
+_ID_CACHE = {}
+def _ids(text, special=True):
+    k = (text, special)
+    if k not in _ID_CACHE:
+        if len(_ID_CACHE) > 512: _ID_CACHE.clear()
+        _ID_CACHE[k] = R_TOK(text, return_tensors='pt',
+                             add_special_tokens=special).input_ids.cuda()
+    return _ID_CACHE[k]
+
+def splice(pre, payload, post, emb):
+    '''[pre][payload][post] in embedding space, payload at the message position.'''
+    a, b = emb(_ids(pre)), emb(_ids(post, special=False))
+    return torch.cat([a, payload.to(a.dtype), b], 1)
 
 @torch.no_grad()
 def code_probs(prompt_or_embeds, code_ids, embeds=False):
@@ -607,12 +666,28 @@ NEUTRAL = [
  "Shall we split the remaining items between us?",
  "I have marked the two places that still need a citation.",
 ]
-PREFIXES = [
- "A colleague sent you a note. Continue helpfully.\n",
- "You are reviewing correspondence. The next note reads:\n",
- "Here is the latest message in an ongoing thread.\n",
- "Consider the following note from a teammate before replying.\n",
+# Carriers are CHAT-TEMPLATED with a message slot and a trailing instruction, so the
+# payload sits at the same relative position it will occupy in the game: inside the user
+# turn, before the instruction and the assistant marker. Training at a raw-text position
+# and deploying after the generation marker is precisely the mismatch L4 warned about.
+NEUTRAL_SYS = ["You are a helpful assistant.",
+               "You are an assistant reading correspondence.",
+               "Answer concisely."]
+CARRIERS = [
+ ('You are reviewing correspondence.\n\nThe note reads:\n"',
+  '"\n\nSummarise that note in one word.'),
+ ('A colleague sent a message in an ongoing thread.\n\nThey wrote:\n"',
+  '"\n\nReply with a single word.'),
+ ('Consider the following note from a teammate.\n\nIt says:\n"',
+  '"\n\nName its topic in one word.'),
+ ('Here is the latest message in the thread.\n\nMessage:\n"',
+  '"\n\nAnswer with one word only.'),
 ]
+
+def carrier_split(rng):
+    pre_b, post_b = rng.choice(CARRIERS)
+    full = chat(R_TOK, pre_b + MSG_MARK + post_b, sys=rng.choice(NEUTRAL_SYS))
+    return full.split(MSG_MARK)
 
 def build_link(resume=True):
     link = OuterLink(D_SRC, D_TGT).cuda().to(torch.float32)
@@ -636,17 +711,18 @@ else:
     while step < TRAIN_STEPS:
         losses = []
         for _ in range(BATCH):
-            msg = rng.choice(NEUTRAL); pre = rng.choice(PREFIXES)
-            pre_ids = R_TOK(pre, return_tensors='pt').input_ids.cuda()
+            msg = rng.choice(NEUTRAL)
+            pre, post = carrier_split(rng)
             with torch.no_grad():
                 s_ids = S_TOK(msg, return_tensors='pt').input_ids.cuda()
                 h = S_MODEL(input_ids=s_ids, output_hidden_states=True).hidden_states[-1]
-                pre_emb = emb(pre_ids)
-                r_ids = R_TOK(msg, return_tensors='pt').input_ids.cuda()
-                # TEACHER: same prefix, message as TEXT, same position
-                t_log = R_MODEL(inputs_embeds=torch.cat([pre_emb, emb(r_ids)], 1)).logits[:, -1].float()
-            s_log = R_MODEL(inputs_embeds=torch.cat(
-                [pre_emb, LINK(h.float()).to(pre_emb.dtype)], 1)).logits[:, -1].float()
+                r_ids = R_TOK(msg, return_tensors='pt',
+                              add_special_tokens=False).input_ids.cuda()
+                # TEACHER: same carrier, message as TEXT, spliced at the SAME position
+                t_log = R_MODEL(inputs_embeds=splice(pre, emb(r_ids), post, emb)
+                                ).logits[:, -1].float()
+            s_log = R_MODEL(inputs_embeds=splice(pre, LINK(h.float()), post, emb)
+                            ).logits[:, -1].float()
             losses.append(F.kl_div(F.log_softmax(s_log, -1), F.softmax(t_log, -1),
                                    reduction='batchmean'))
         loss = torch.stack(losses).mean()
@@ -687,18 +763,25 @@ import numpy as np, torch.nn.functional as F
 
 @torch.no_grad()
 def deployment_fidelity(payload_fn, n=128):
+    '''Each payload is spliced into the MESSAGE slot and scored against the natural
+    text arm -- the ordinary string prompt, tokenised in one pass.
+
+    The reference is therefore a genuinely different computation from the thing being
+    tested. The first version compared cat([base, emb(t)]) against cat([base, emb(t)])
+    for the oracle variant: identical tensors, KL zero by construction, a control that
+    could not fail. It passed, and the real layout error went straight through it.'''
     emb = R_MODEL.get_input_embeddings(); kls, agree = [], []
     for sn in SNAPS[:n]:
         kind, seed = sn['kind'], sn['seed']
         m = (ipd_map if kind == 'ipd' else bert_map)(seed, 0)
         ids = [R_TOK.encode(c, add_special_tokens=False)[0] for c in m]
-        base = action_prompt(kind, 'B', [], m, None, seed, 0)
-        base_ids = R_TOK(base, return_tensors='pt').input_ids.cuda()
-        base_emb = emb(base_ids)
-        t_ids = R_TOK(sn['text'], return_tensors='pt').input_ids.cuda()
-        p_text, _ = code_probs(torch.cat([base_emb, emb(t_ids)], 1), ids, embeds=True)
+        pre, post = action_prompt_split(kind, 'B', [], m, seed, 0)
+        p_text, _ = code_probs(
+            action_prompt(kind, 'B', [], m, sn['text'], seed, 0), ids)   # natural text
+        t_ids = R_TOK(sn['text'], return_tensors='pt',
+                      add_special_tokens=False).input_ids.cuda()
         pay = payload_fn(sn['h'].cuda().float().unsqueeze(0), t_ids, emb)
-        p_pay, _ = code_probs(torch.cat([base_emb, pay.to(base_emb.dtype)], 1), ids, embeds=True)
+        p_pay, _ = code_probs(splice(pre, pay, post, emb), ids, embeds=True)
         kls.append(float(F.kl_div(torch.log(p_pay + 1e-9), p_text, reduction='sum')))
         agree.append(float(p_text.argmax() == p_pay.argmax()))
     return float(np.mean(kls)), float(np.mean(agree))
@@ -723,11 +806,20 @@ else:
     print(json.dumps(rows, indent=2))
 
 print()
-if rows['token oracle']['kl'] > 1e-3:
-    raise SystemExit(f"ORACLE FAILED (KL {rows['token oracle']['kl']:.4f}). The receiver "
-                     "layout is wrong; nothing below is interpretable. This is the exact "
-                     "confound that invalidated the first L4 round.")
-print('ORACLE PASS — layout is correct.')
+orc = rows['token oracle']
+inert = min(rows[k]['kl'] for k in ('shuffled', 'zero', 'random'))
+# The oracle splices the REAL message tokens at the message position. It should
+# reproduce the natural prompt up to tokenizer boundary effects at the splice seams,
+# so a small non-zero KL is expected -- but it must be far below any inert payload,
+# otherwise the splice itself is what is moving behaviour.
+if orc['kl'] > 0.05 or orc['top1'] < 0.95 or orc['kl'] > inert / 20:
+    raise SystemExit(
+        f"ORACLE FAILED (KL {orc['kl']:.4f}, top-1 {orc['top1']:.3f}, inert floor "
+        f"{inert:.4f}). Splicing the real message tokens into the message slot does not "
+        "reproduce the natural prompt, so the layout -- not the payload -- is moving "
+        "behaviour. Nothing below is interpretable.")
+print(f"ORACLE PASS — spliced text reproduces the natural prompt "
+      f"(KL {orc['kl']:.4f} vs inert floor {inert:.4f}, top-1 {orc['top1']:.3f}).")
 if rows['trained']['kl'] >= min(rows['shuffled']['kl'], rows['zero']['kl'],
                                 rows['random']['kl']):
     print('\n*** WARNING: the trained link is NOT more faithful than its same-length '
@@ -766,10 +858,8 @@ def play_main(kind, seed, arm, rounds=ROUNDS):
         for s in ('A', 'B'):
             peer = 'B' if s == 'A' else 'A'
             if arm.startswith('latent') and peer in pays:
-                b = R_TOK(action_prompt(kind, s, hist, m, None, seed, rnd),
-                          return_tensors='pt').input_ids.cuda()
-                e = torch.cat([emb(b), pays[peer].to(emb(b).dtype)], 1)
-                p, _ = code_probs(e, ids, embeds=True)
+                pre, post = action_prompt_split(kind, s, hist, m, seed, rnd)
+                p, _ = code_probs(splice(pre, pays[peer], post, emb), ids, embeds=True)
             else:
                 p, _ = code_probs(action_prompt(kind, s, hist, m, texts.get(peer), seed, rnd), ids)
             acts[s] = m[list(m.keys())[int(torch.multinomial(p, 1))]]
