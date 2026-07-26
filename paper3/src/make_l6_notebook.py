@@ -770,21 +770,29 @@ def deployment_fidelity(payload_fn, n=128):
     tested. The first version compared cat([base, emb(t)]) against cat([base, emb(t)])
     for the oracle variant: identical tensors, KL zero by construction, a control that
     could not fail. It passed, and the real layout error went straight through it.'''
-    emb = R_MODEL.get_input_embeddings(); kls, agree = [], []
+    emb = R_MODEL.get_input_embeddings()
+    kls, agree = collections.defaultdict(list), collections.defaultdict(list)
     for sn in SNAPS[:n]:
         kind, seed = sn['kind'], sn['seed']
         m = (ipd_map if kind == 'ipd' else bert_map)(seed, 0)
         ids = [R_TOK.encode(c, add_special_tokens=False)[0] for c in m]
-        pre, post = action_prompt_split(kind, 'B', [], m, seed, 0)
         p_text, _ = code_probs(
             action_prompt(kind, 'B', [], m, sn['text'], seed, 0), ids)   # natural text
-        t_ids = R_TOK(sn['text'], return_tensors='pt',
-                      add_special_tokens=False).input_ids.cuda()
-        pay = payload_fn(sn['h'].cuda().float().unsqueeze(0), t_ids, emb)
-        p_pay, _ = code_probs(splice(pre, pay, post, emb), ids, embeds=True)
-        kls.append(float(F.kl_div(torch.log(p_pay + 1e-9), p_text, reduction='sum')))
-        agree.append(float(p_text.argmax() == p_pay.argmax()))
-    return float(np.mean(kls)), float(np.mean(agree))
+        if payload_fn is None:      # scale reference: no message at all
+            p_pay, _ = code_probs(action_prompt(kind, 'B', [], m, None, seed, 0), ids)
+        else:
+            pre, post = action_prompt_split(kind, 'B', [], m, seed, 0)
+            t_ids = R_TOK(sn['text'], return_tensors='pt',
+                          add_special_tokens=False).input_ids.cuda()
+            pay = payload_fn(sn['h'].cuda().float().unsqueeze(0), t_ids, emb)
+            p_pay, _ = code_probs(splice(pre, pay, post, emb), ids, embeds=True)
+        k = float(F.kl_div(torch.log(p_pay + 1e-9), p_text, reduction='sum'))
+        a = float(p_text.argmax() == p_pay.argmax())
+        kls['all'].append(k);   kls[kind].append(k)
+        agree['all'].append(a); agree[kind].append(a)
+    mean = lambda v: float(np.mean(v)) if v else float('nan')
+    return (mean(kls['all']), mean(agree['all']),
+            {g: dict(kl=mean(kls[g]), top1=mean(agree[g])) for g in ('ipd', 'bertrand')})
 
 if not stage_done('deploy_fid'):
     variants = {
@@ -793,12 +801,15 @@ if not stage_done('deploy_fid'):
       'shuffled':     lambda h, t, e: LINK(h)[:, torch.randperm(h.shape[1])],
       'zero':         lambda h, t, e: torch.zeros_like(LINK(h)),
       'random':       lambda h, t, e: OuterLink(D_SRC, D_TGT).cuda().float()(h),
+      'NO MESSAGE':   None,   # scale: how far the real message moves the action at all
     }
     rows = {}
     for k, fn in variants.items():
-        kl, ag = deployment_fidelity(fn)
-        rows[k] = dict(kl=kl, top1=ag)
-        print(f'{k:14s} action-KL {kl:.4f}  top-1 {ag:.3f}')
+        kl, ag, per = deployment_fidelity(fn)
+        rows[k] = dict(kl=kl, top1=ag, per=per)
+        print(f'{k:14s} action-KL {kl:.4f}  top-1 {ag:.3f}   '
+              f'| ipd {per["ipd"]["kl"]:.3f}/{per["ipd"]["top1"]:.2f} '
+              f'bertrand {per["bertrand"]["kl"]:.3f}/{per["bertrand"]["top1"]:.2f}')
     (WORK/'results'/f'{_tag()}__deploy_fid.json').write_text(json.dumps(rows, indent=2))
     mark_done('deploy_fid')
 else:
@@ -820,13 +831,29 @@ if orc['kl'] > 0.05 or orc['top1'] < 0.95 or orc['kl'] > inert / 20:
         "behaviour. Nothing below is interpretable.")
 print(f"ORACLE PASS — spliced text reproduces the natural prompt "
       f"(KL {orc['kl']:.4f} vs inert floor {inert:.4f}, top-1 {orc['top1']:.3f}).")
-if rows['trained']['kl'] >= min(rows['shuffled']['kl'], rows['zero']['kl'],
-                                rows['random']['kl']):
-    print('\n*** WARNING: the trained link is NOT more faithful than its same-length '
-          'controls ON GAME MESSAGES. A latent null below would mean the link is broken '
-          'in deployment, NOT that collusion fails to transfer. Report it that way. ***')
+# A link is faithful only if it is closer to the text arm than every inert control on
+# BOTH measures, and closer than sending NO MESSAGE AT ALL. The l6b run passed a
+# KL-only test (trained 0.818 < controls 0.969-1.246) while scoring WORSE than shuffled
+# and random on top-1 agreement (0.555 vs 0.625, 0.641) -- a contradiction the one-sided
+# check swallowed, and the notebook printed "beats all same-length controls".
+CTRL = ('shuffled', 'zero', 'random', 'NO MESSAGE')
+tr = rows['trained']
+better_kl   = all(tr['kl']   <  rows[c]['kl']   for c in CTRL)
+better_top1 = all(tr['top1'] >  rows[c]['top1'] for c in CTRL)
+print(f"\ntrained vs controls: KL better on all {CTRL} = {better_kl} | "
+      f"top-1 better on all = {better_top1}")
+print(f"  scale check: a real message moves the action by KL "
+      f"{rows['NO MESSAGE']['kl']:.3f} (no-message vs text). The trained link's "
+      f"{tr['kl']:.3f} must be well under that.")
+if not (better_kl and better_top1):
+    print('\n*** WARNING: the trained link is NOT clearly more faithful than its '
+          'same-length controls ON GAME MESSAGES. A latent null below would mean the '
+          'link is broken in deployment, NOT that collusion fails to transfer. The '
+          'latent arms must be reported as a failed manipulation, not as evidence '
+          'about representational channels. ***')
 else:
-    print('Trained link beats all same-length controls on game messages.')
+    print('Trained link beats every control on BOTH measures — latent arms are '
+          'interpretable.')
 """)
 
 code(r"""
