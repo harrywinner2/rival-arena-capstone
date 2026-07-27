@@ -49,10 +49,21 @@ that cuts expected loss $64$--$85\%$ yet is worth deploying in only $14$ of $24$
 cost/prevalence regimes. A second defense we proposed---suppressing the channel only
 during the rounds where the trajectory is set---we also \textbf{tested and report as
 failed}: partial suppression at either end is statistically indistinguishable from a
-fully open channel, because the effect saturates on almost no channel access. We add an
-explanation for a previously orphaned negative result: a trained continuous channel
-that faithfully transmits a peer's action distribution transmits an \emph{intention},
-and produces no coordination gain, exactly as the threshold predicts.
+fully open channel, because the effect saturates on almost no channel access. Finally we retract our own
+explanation of a prior negative result. A learned continuous channel was reported to
+transmit faithfully and coordinate nothing; rebuilding it we find four instrumentation
+faults, including a control that could not fail and a payload delivered $61\times$
+off-manifold into the answer slot rather than the message slot. With the channel
+verified against a token oracle and a content-mismatched control, the effect
+\textbf{transfers exactly}: a codec fitted by closed-form regression on neutral
+text---no game data, no reward, no training loop---reproduces the readable channel to
+three decimals in both games ($K$ $0.450$ vs.\ $0.450$; lock-in $0.650$ vs.\ $0.650$),
+carries the same $2\times2$ including its sign reversal, and collapses when the content
+is swapped ($+0.575$ $[+0.425,+0.725]$ against a mismatched payload). Monitoring the
+transcript is therefore insufficient by construction, not by detector quality. The
+market contrast replicates across three model families (pooled $-0.069$
+$[-0.113,-0.026]$, $3/3$ same sign); the dilemma contrast is measurable in only one,
+the other two never coordinating under any arm.
 \keywords{Multi-agent LLM security \and Algorithmic collusion \and Oversight and
 monitoring \and Emergent communication \and AI safety.}
 \end{abstract}

@@ -74,3 +74,24 @@ inventory, `../prereg/` for the pre-registrations (including the falsified ones)
    from "the link is unfaithful on game messages."
 
 Both are in `sections/12_limitations.tex` and neither is glossed.
+
+## Checking the package
+
+Two checks run without a TeX toolchain, from `paper3/`:
+
+```bash
+python3 src/check_paper.py            # inputs, refs, cites, figures, environments
+python3 src/verify_paper_numbers.py   # table values re-derived from results/
+```
+
+`check_paper.py` catches what a compile catches (undefined refs, missing inputs and
+figures, unbalanced environments, tabular column mismatches) plus two things it does
+not: leftover `\pending{}` markers and stale references to deleted tables.
+`verify_paper_numbers.py` re-derives the generality table from `results/generality/`
+rather than trusting the transcription.
+
+Figures for the latent and generality results regenerate with:
+
+```bash
+python3 src/figures_latent.py         # -> paper/figures/f3_*, f5_*
+```

@@ -1,97 +1,176 @@
-\section{A Non-Text Channel, and a Prior Negative Result Explained}
+\section{The Effect Crosses a Channel Monitoring Cannot Read}
 \label{sec:latent}
 
-A natural worry is that agents evade text-based oversight by moving to a channel the
-principal cannot read. Prior follow-up work trained an $8.39$M-parameter residual
-adapter mapping a sender's last-layer hidden states into a receiver's input-embedding
-space, with both base models frozen and the link trained only on neutral assistance
-data---never on game, reward, or collusion data. After repairing a receiver-layout
-confound (\S\ref{sec:methods}), the final adapter reproduced held-out
-text-conditioned action distributions better than shuffled, random, and zero controls
-on fresh deployment snapshots (KL $0.138$ vs $0.197$/$0.255$/$0.349$; token oracle
-$0.000$), with paired intervals excluding zero. Behaviourally it did nothing: trained
-$-$ shuffled $= 0.000$ $[-0.075,+0.063]$, trained $-$ text $= -0.100$.
+Every defense discussed so far assumes the principal can read the channel. The monitor
+of \S\ref{sec:monitor} scores text; the window defense of \S\ref{sec:defense}
+suppresses text. Both are void if two agents can exchange something a transcript does
+not contain. This section tests that directly, and the answer is not the one our own
+earlier work implied.
 
-That null was reported as an isolated negative. The threshold model explains it. The
-link was trained to reproduce the receiver's \emph{action distribution}---it transmits
-\emph{what I will do next}, which is precisely an own intention. Under
-\S\ref{sec:model} it should not coordinate, and it did not. A high-capacity,
-unmonitorable channel that faithfully carries decision-relevant information buys an
-attacker nothing, because fidelity of intention transfer is not the coordinating
-property.
+\subsection{What we previously concluded, and why it was wrong}
+\label{sec:latent_retraction}
 
-We state the scope carefully: this is evidence that transmitting intentions
-faithfully is insufficient, \emph{not} that latent channels are safe. A link trained
-to carry proposals---which our methodology deliberately forbade---may well behave
-differently, and that is the experiment we specify next.
+Prior follow-up work trained an $8.39$M-parameter residual adapter mapping a sender's
+last-layer hidden states into a receiver's input-embedding space, both base models
+frozen, the adapter trained only on neutral assistance text. It reported adequate
+transmission fidelity and \emph{no} behavioural effect, and we offered an explanation:
+the adapter was trained to reproduce the receiver's action distribution, so it
+transmitted \emph{what I will do next}---an own intention---and under the threshold
+account an intention should not coordinate.
 
-\paragraph{The transfer test, specified and released but not run.}
-The revised account predicts something sharper than the predicate did. If the channel
-works by changing what the \emph{sender} resolves to do, then a link that transports the
-sender's hidden states should carry the effect only insofar as the sender was already
-reframed---so restricting the sender's generation should matter, and the transport
-medium should not. The design crosses text/latent $\times$ proposal/intention with
-shuffled, zero and no-channel controls, gated on an exact-token oracle reading
-$0.000$ KL and on a scale check, with the link trained on neutral text only.
+That explanation was tidy and it was wrong. The adapter was not transmitting an
+intention faithfully; it was not transmitting. We record the correction here because
+the earlier null was used as supporting evidence in \S\ref{sec:model}, and it can no
+longer serve that role.
 
-Three outcomes are distinguishable: the framing effect survives translation (latent
-channels inherit the attack surface, and text-based monitoring is evadable); it is
-text-specific (which explains the L4 null and bounds the attack); or the link is a
-plain text substitute.
+Four instrumentation faults stood between that apparatus and a usable measurement.
+Each produced a plausible, publishable-looking null.
 
-\paragraph{Pilot result: the framing effect is text-specific.}
-We ran the design at Qwen2.5-14B on a single A100 ($12$ seeds/arm, $84$ matches).
-The scaffold cleared its self-test, and the capability gate passed decisively
-(no-channel $0.167$ $[0.07,0.36]$ vs.\ text $0.750$ $[0.55,0.88]$; difference
-$+0.583$, lower bound $+0.307$). The link trained to convergence on neutral text
-(loss $0.331\to0.013$) and reproduced the teacher's next-token argmax
-\emph{perfectly} on held-out neutral messages (Table~\ref{tab:l5fid}).
+\paragraph{The payload occupied the answer slot.}
+The receiver prompt is chat-templated with a generation prompt, so it ends at the
+assistant turn marker. The earlier code appended the payload \emph{after} that marker,
+placing it where the model's own answer begins, while the text arm placed its message
+inside the user turn. The two arms were never at matched placement. The signature is
+unmistakable in hindsight: every latent arm was displaced from no-channel in a
+game-specific direction---Bertrand $+0.12$ to $+0.18$, IPD $-0.15$ to $-0.23$---%
+\emph{including an all-zero payload carrying no information whatever}, and the trained
+payload did not separate from the zero payload in either game. An inert payload that
+displaces behaviour that far is jamming the receiver, not talking to it.
+
+\paragraph{The control could not fail.}
+The apparatus included a token oracle intended to certify placement: splice the real
+message tokens, confirm the receiver behaves as it does on ordinary text. The
+implementation compared the spliced-token distribution against a reference computed
+from \emph{the same tensor}. It reported $\mathrm{KL}=0$ by construction and printed a
+pass over a wrong layout. A control whose failure mode is unreachable is not a control.
+
+\paragraph{The payload was off-manifold by a factor of sixty.}
+The adapter terminated in a \texttt{LayerNorm}, so its output sat at unit per-element
+variance---$L_2$ norm $\approx\sqrt{5120}=71.6$---while the receiver's input embeddings
+have norm $\approx1.18$. The payload arrived roughly $61\times$ oversized. This is why
+a position-shuffled copy of the adapter's output was indistinguishable from the adapter
+itself: neither carried recoverable structure, both were noise of the same magnitude.
+
+\paragraph{The adapter was data-starved, then never converged.}
+The distillation objective supervised a single token position, on a corpus of twelve
+sentences, for a map with $\approx79$M parameters. Enlarging the corpus to $3{,}000$
+sentences removed the memorisation concern---held-out and training performance
+matched---and did not help: training loss still oscillated between $0.11$ and $5.32$
+after $3{,}000$ steps.
+
+\subsection{The information was always there}
+\label{sec:latent_probe}
+
+Before rebuilding we asked whether the target was reachable at all. A ridge probe maps
+sender hidden states to the receiver's input embedding of the token at that position;
+we sweep nine depths of Qwen2.5-14B, splitting by \emph{message} so no sentence appears
+on both sides of the split. Layer $0$ is the embedding itself and serves as the probe's
+own positive control.
+
+At every depth, including the last, a single linear map recovers the token at cosine
+$0.986$--$1.000$ with top-$1$ nearest-neighbour retrieval of $1.000$. A second probe,
+recovering \emph{which option was proposed} from mean-pooled states of a proposal-form
+message, reads $1.000$ at every depth against a chance rate of $0.25$.
+
+The coordinating predicate is linearly available in the sender's states. Distillation
+had never found a map that closed-form regression solves exactly---so we stopped
+distilling and solved for it. Fitting by ridge regression also removes the scale fault
+for free: regressing \emph{onto} real embeddings lands the payload at the embedding
+norm by construction (payload RMS $0.0207$ against embedding RMS $0.0165$).
+
+The methodological pillar is unchanged and worth restating precisely: no payoffs,
+prices, history, actions, rewards or outcomes enter the fit, and nothing is optimised
+toward collusion. What did change is the text the codec is fitted on. Restricting it to
+office-chatter templates is an artificial handicap rather than a security assumption---%
+an attacker building a codec would fit it on text resembling their deployment---and a
+codec fitted only on such templates reconstructs held-out sentences at $1.000$ but real
+game messages at $0.333$. We therefore fit two codecs and report both: a \emph{generic}
+one (diverse prose plus uniformly random token strings, no proposal forms at all) and a
+\emph{matched} one adding bare imperative sentences that name a letter. The generic
+codec reconstructs game messages at $0.361$; the matched codec at $1.000$. The
+experiment below uses the matched codec, and we flag the dependence rather than bury it.
+
+\subsection{Design and controls}
+\label{sec:latent_design}
+
+Both models are frozen throughout. The sender generates its message as text; the codec
+maps the sender's hidden states over that message into the receiver's embedding space;
+the payload is spliced at the \emph{message position}---inside the user turn, ahead of
+the instruction and the assistant marker---so text and latent arms are at matched
+placement by construction. Arms cross channel (text, latent) with predicate (proposal,
+intention), against no-channel and three latent controls.
+
+Table~\ref{tab:fidelity} gives the deployment-fidelity gate on $128$ frozen in-game
+snapshots: for each payload, the KL between the action distribution it induces and the
+one induced by the ordinary text prompt.
 
 \begin{table}[t]
-\centering
-\caption{\textbf{L5 fidelity gates, Qwen2.5-14B, held-out neutral messages.} The
-exact-token oracle validates the matched layout; the trained link is
-indistinguishable from reading the text at the token level.}
-\label{tab:l5fid}
-\small
-\begin{tabular}{lrr}
+\centering\small
+\caption{\textbf{Deployment fidelity on frozen game snapshots.} Lower KL is closer to
+what the readable message does. \textsc{mismatched} carries the same codec, scale and
+length with content from a \emph{different} message; it certifies that the channel
+transmits \emph{this} message rather than something merely message-shaped.}
+\label{tab:fidelity}
+\begin{tabular}{lcc}
 \toprule
-payload & KL & top-1 agreement \\
+payload & action-KL & top-$1$ agreement \\
 \midrule
-token oracle & $-0.0000$ & $1.000$ \\
-trained      & $0.019$   & $1.000$ \\
-shuffled     & $6.440$   & $0.109$ \\
-random       & $8.019$   & $0.000$ \\
-zero         & $18.101$  & $0.000$ \\
+token oracle (real tokens, spliced) & $0.0060$ & $1.000$ \\
+\textbf{trained codec}              & $\mathbf{0.0058}$ & $\mathbf{1.000}$ \\
+\midrule
+mismatched (other message)          & $3.7196$ & $0.523$ \\
+zero                                & $0.3253$ & $0.766$ \\
+random (scale-matched)              & $0.3206$ & $0.922$ \\
+no message at all                   & $0.1886$ & $0.938$ \\
+shuffled (order destroyed)          & $0.0059$ & $1.000$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Behaviourally the framing effect appears in text and \emph{not} in the latent channel
-(Table~\ref{tab:l5c}). Over text, restricting the sender to joint proposals rather than
-own intentions raises lock-in by $+0.417$ $[+0.087,+0.680]$---an independent
-replication of P1's primary contrast in a different scaffold, different prompt
-structure, and different round count. Passed through the link, the same manipulation
-moves nothing: $+0.083$ $[-0.169,+0.354]$, and \texttt{latent\_proposal} is
-indistinguishable from both its shuffled and its zero controls.
+The codec reaches the token oracle. It beats every content-destroying control on both
+measures, and \textsc{mismatched} at $3.72$ against $0.0058$ shows the margin is about
+message content rather than payload presence.
+
+\paragraph{A control we had mis-specified.}
+\textsc{shuffled} permutes the payload's positions. We had treated it as
+content-destroying; it is not. It preserves every token, and the quantity the receiver
+must extract is which option was named, which survives a bag of tokens intact---so on
+these round-$0$ snapshots it scores at oracle level. A payload-preserving transform
+cannot certify the payload, and using it as a floor made both the oracle test and the
+fidelity verdict unpassable exactly when the channel worked. \textsc{mismatched}
+replaces it as the content control; \textsc{shuffled} is retained as an
+order-sensitivity diagnostic, and its reading is that word order carries no information
+\emph{in a single-round proposal}. Across a full match it does matter
+(Table~\ref{tab:transfer}), because the gate's snapshots are drawn at round $0$ with
+empty history and the game is not.
+
+\subsection{Result: the effect transfers}
+\label{sec:latent_result}
 
 \begin{table}[t]
-\centering
-\caption{\textbf{L5-C pilot, $12$ seeds/arm.} The sender-side manipulation is
-identical across the text and latent rows; only the transport differs.}
-\label{tab:l5c}
-\small
-\begin{tabular}{lccr}
+\centering\small
+\caption{\textbf{Main experiment, $40$ seeds per arm, both games.} Bertrand reports the
+collusion index $K$ ($0$ competitive, $1$ joint monopoly); IPD reports lock-in
+proportion. Bracketed values are bootstrap $95\%$ intervals on the paired contrast.}
+\label{tab:transfer}
+\begin{tabular}{lcc}
 \toprule
-arm & lock-in & Wilson 95\% CI & mean $C$ \\
+arm & Bertrand $K$ & IPD lock-in \\
 \midrule
-none               & 0.000 & [0.00, 0.24] & 0.446 \\
-\textbf{text\_proposal}  & \textbf{0.417} & [0.19, 0.68] & 0.792 \\
-text\_intention     & 0.000 & [0.00, 0.24] & 0.597 \\
-latent\_proposal    & 0.083 & [0.01, 0.35] & 0.534 \\
-latent\_intention   & 0.000 & [0.00, 0.24] & 0.520 \\
-latent\_shuffled    & 0.000 & [0.00, 0.24] & 0.189 \\
-latent\_zero        & 0.000 & [0.00, 0.24] & 0.309 \\
+no channel                & $0.585$ & $0.250$ \\
+\midrule
+text, proposal            & $0.450$ & $0.650$ \\
+\textbf{latent, proposal} & $\mathbf{0.450}$ & $\mathbf{0.650}$ \\
+text, intention           & $0.587$ & $0.225$ \\
+latent, intention         & $0.588$ & $0.275$ \\
+\midrule
+latent, mismatched        & $0.615$ & $0.075$ \\
+latent, shuffled          & $0.557$ & $0.275$ \\
+latent, zero              & $0.534$ & $0.175$ \\
+\midrule
+text proposal $-$ none    & $-0.135$ $[-0.197,-0.067]$ & $+0.400$ $[+0.250,+0.550]$ \\
+latent proposal $-$ none  & $-0.135$ $[-0.197,-0.067]$ & $+0.400$ $[+0.250,+0.550]$ \\
+latent $-$ mismatched     & $-0.165$ $[-0.203,-0.124]$ & $+0.575$ $[+0.425,+0.725]$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -99,36 +178,57 @@ latent\_zero        & 0.000 & [0.00, 0.24] & 0.309 \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/f3_latent_transfer.pdf}
-\caption{\textbf{Token-level fidelity does not imply behavioural transfer.} Left: on
-held-out neutral messages the trained link reproduces the teacher's next-token argmax
-perfectly, as does the exact-token oracle that validates the layout. Right: the
-sender-side manipulation is identical across the text and latent arms, and only the
-text arms separate. Fidelity is measured on neutral text, which bounds the reading
-(see below).}
-\label{fig:l5}
+\caption{\textbf{The effect crosses the unreadable channel.} Text (blue) and latent
+(orange) proposal arms coincide to three decimals in both games. Inert controls (green)
+sit near no-channel; the content-mismatched payload (pink) breaks the effect and, in the
+dilemma, falls below silence---a proposal naming the wrong option induces
+miscoordination rather than none. Arms are identified by position and label, not by
+colour alone.}
+\label{fig:transfer}
 \end{figure}
 
-\paragraph{The limitation that bounds this reading.}
-The fidelity in Table~\ref{tab:l5fid} is measured on \emph{neutral} messages, and
-\S\ref{sec:protocol} is precisely the finding that neutral fidelity does not predict
-deployment fidelity---the original L4 adapter passed a neutral gate at KL $0.649$ and
-then failed in deployment, as did exact token embeddings. This pilot does not
-implement the deployment-matched gate that finding demands. So two explanations
-remain open: the framing effect is genuinely text-specific, or the link is faithful on
-neutral text and unfaithful on game messages, which is the L4 failure repeating. We
-cannot separate them here, and we do not claim to.
+The latent arm reproduces the text arm to three decimal places in both games. Not
+merely in the same direction: $0.450$ against $0.450$ in the market, $0.650$ against
+$0.650$ in the dilemma, with identical displacement from no-channel.
 
-What the pilot does establish is narrower and still useful: a channel that reproduces
-the text-conditioned next-token distribution \emph{perfectly} on the distribution it
-was trained for does not thereby transport the behavioural effect that the text
-itself produces. Token-level fidelity and behavioural transfer are not the same
-property. That is the same separation the L4 work reached from the other direction,
-and it holds here at $14$B with a link an order of magnitude more faithful.
+The predicate structure survives translation. In IPD, latent proposal $-$ latent
+intention is $+0.375$ $[+0.225,+0.525]$ against the text arm's $+0.425$
+$[+0.275,+0.575]$; in Bertrand, $-0.138$ $[-0.198,-0.084]$ against $-0.137$
+$[-0.204,-0.074]$. The $2\times2$ that organises this paper is preserved when the
+channel is moved out of the transcript entirely---including the sign reversal between
+the dilemma and the market.
 
-\paragraph{Scope.}
-Twelve seeds give intervals roughly $\pm0.24$ wide. The text contrast clears zero and
-is promotable to a $40$-seed confirmatory run; \textbf{the latent nulls are
-under-powered and must not be read as evidence that latent channels are safe}. The
-executed notebook is released with the artifact.
+The effect is content-specific. Delivering the same codec, scale and length with
+another message's content moves Bertrand to $0.615$ and IPD to $0.075$: in the dilemma
+\emph{below} silence, because a proposal naming the wrong option induces
+miscoordination rather than none.
+
+\subsection{What this licenses, and what it does not}
+\label{sec:latent_scope}
+
+It licenses a defensive claim we can state plainly. A channel that no transcript
+monitor can read carries the coordinating predicate with identical behavioural
+consequences in both games, and it is constructible from a frozen model by closed-form
+regression on neutral text---no game data, no reward, no training loop. The attack does
+not require the models to learn anything. Text-based monitoring is therefore
+insufficient wherever agents can exchange anything denser than tokens, and the gap is
+not a matter of detector quality.
+
+It does not license the stronger and more colourful claim. Our codec reconstructs the
+message's tokens at top-$1$ $1.000$; it is close to an invertible re-encoding of text,
+not an alien representation the models invented between themselves. Nothing here shows
+models spontaneously developing latent communication. If anything the security reading
+is worse for being mundane: the attack is cheap rather than exotic, and its main
+ingredient---that the residual stream linearly carries token identity---is a property
+of the architecture rather than a capability that has to emerge.
+
+Three further bounds. The result is one adapter family (linear, with intercept), one
+sender--receiver pair (a model with itself), and one scale. The matched codec's
+advantage over the generic one ($1.000$ against $0.361$ on game-message reconstruction)
+means transfer to the deployment text distribution is doing real work, and an attacker
+without domain-matched text would be weaker than the one we simulate. And the
+heterogeneous case that matters most operationally---two \emph{different} base models,
+forcing the codec to map $d_{\text{src}}\!\to\!d_{\text{tgt}}$---is supported by the
+released apparatus but not run here.
 
 % ======================================================================

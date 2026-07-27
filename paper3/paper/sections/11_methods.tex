@@ -76,13 +76,39 @@ adapter quality. Matching the layout drove the token oracle to exactly $0.000$ K
 $1.000$ top-$1$ agreement, and only then did a link trained under that layout beat all
 controls. Any study of latent inter-agent channels should therefore adopt:
 \begin{enumerate}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
-\item an \textbf{exact-token oracle} that must score $0.000$ KL, or the harness is broken;
-\item \textbf{matched payload placement} for text and latent conditions;
-\item a \textbf{deployment-distribution} fidelity gate, not a neutral one;
-\item the \textbf{shuffled/zero/random} trio---in the legacy layout, shuffled
-\emph{beat} trained ($0.184$ vs $0.269$), a result that would have been published as a
-positive by anyone lacking these controls.
+\item a \textbf{token oracle whose reference is a different computation}. Splice the
+real message tokens at the message position and score them against the \emph{natural}
+string prompt. Our first version compared the spliced tensor against a reference
+computed from that same tensor: KL was zero by construction and it certified a wrong
+layout. Expect a small non-zero value from tokenizer boundary effects at the splice
+seams---we read $0.0060$---and treat an exact zero as evidence the control is vacuous.
+\item \textbf{matched payload placement}. A chat-templated prompt ends at the
+assistant marker; appending a payload after it puts the payload in the \emph{answer}
+slot while the text arm's message sits in the user turn. Splice at the message
+position instead, and verify by reconstructing the text-arm prompt exactly.
+\item a \textbf{scale check against the receiver's embedding norm}. An adapter ending
+in \texttt{LayerNorm} emits vectors at $L_2\approx\sqrt{d}$ while input embeddings sit
+near $1$; ours arrived $61\times$ oversized and behaved as noise. One line of
+diagnostic output would have caught it.
+\item a \textbf{content-mismatched} control---the same codec, scale and length carrying
+another message---as the primary evidence of transmission. Zero and random payloads
+establish only that \emph{something} is present.
+\item \textbf{no payload-preserving transform as a floor}. We used position-shuffling
+as a content control; it destroys word order but preserves every token, and when the
+decision-relevant content is a named option it scores at oracle level. Using it as a
+floor made our gate unpassable precisely when the channel worked.
+\item a \textbf{no-message reference}, giving the size of the effect the channel is
+trying to reproduce, so that a fidelity number can be read against something.
+\item a \textbf{generalisation ladder} before any behavioural spend: training text,
+held-out sentences, held-out sentence patterns, then real deployment messages. Ours
+read $1.000/0.728/0.361$, localising a distribution-shift failure that a single
+aggregate number would have hidden.
 \end{enumerate}
+An inert payload that displaces behaviour is the diagnostic signature to watch for: in
+the broken layout, an \emph{all-zero} payload moved outcomes by $+0.12$ to $-0.23$
+depending on the game. Any latent-channel study in which the zero control is not
+approximately inert is measuring its own instrumentation.
+
 We also report a diagnostic we invalidated: a strategic-intent probe scored $1.0$
 AUROC for both the trained \emph{and} the random link, because the labels were already
 linearly recoverable from random high-dimensional features.

@@ -2,14 +2,17 @@
 \label{sec:limitations}
 
 \begin{itemize}[leftmargin=1.1em,itemsep=2pt,topsep=2pt]
-\item \textbf{Model and scaffold scope, and it bites harder than usual.} The
-re-analysis covers four open-weight models through hosted inference; every new
-experiment runs on a \emph{single} model, Qwen2.5-14B-Instruct at bf16. Self-hosting
-pins the precision the prior work could not, but narrows the model set to one. This is
-not a generic caveat here: P1 shows the menu-signal result \emph{reversing sign}
-between $72$B and $14$B, so at least one interface effect in this literature is
-model-specific. Our own single-model results are exposed to exactly that risk, and a
-multi-model replication is the first thing we would want.
+\item \textbf{Model and scaffold scope.} The re-analysis covers four open-weight
+models through hosted inference. The new experiments are anchored on Qwen2.5-14B-%
+Instruct at bf16, with the market contrast replicated on Llama-3.1-8B and OLMo-2-13B
+(\S\ref{sec:generality}). All three are $8$--$14$B, instruction-tuned, English. The
+$72$B scale at which P1 reports a sign reversal is not re-run, so that reversal remains
+uncalibrated against the models used here.
+\item \textbf{The dilemma result rests on one model.} Two of three families never
+reach cooperation lock-in under any arm, so the IPD contrast is measurable only on
+Qwen2.5-14B. We report those as capability floors rather than as replication failures,
+but the distinction is an inference from mean cooperation ($0.19$, $0.18$) and $0/60$
+lock-in, not something these runs establish directly.
 \item \textbf{No same-model bridge to the published corpus.} The new experiments were
 not run on the models behind the prior work, so the $14$B ladder \emph{generalises}
 the published pattern rather than \emph{calibrating} against it. Given the sign
@@ -30,8 +33,15 @@ prompt scaffold. The first-person-plural cue is a linguistic proxy for a semanti
 property, and the mapping may not transfer across languages.
 \item \textbf{Observational components remain observational.} \S\ref{sec:reanalysis}
 establishes what does \emph{not} predict outcomes; the causal claim rests on P1 and P3.
-\item \textbf{The latent-channel result is one architecture, one scale, one training
-objective}, and bounds an attack rather than establishing safety.
+\item \textbf{The latent channel is one codec family, one scale, and a model
+talking to itself.} The codec is linear with an intercept, fitted by ridge on neutral
+text; the sender and receiver are the same checkpoint. The heterogeneous case that
+matters most operationally---two different base models---is supported by the released
+apparatus but not run. The codec also reconstructs tokens at top-$1$ $1.000$, so it is
+close to an invertible re-encoding of text rather than an emergent representation, and
+its transfer to game messages depends on the fitting corpus: a codec fitted without
+proposal-form text reconstructs game messages at $0.361$ against the matched codec's
+$1.000$.
 \end{itemize}
 
 % ======================================================================
