@@ -1194,12 +1194,21 @@ else:
     print(json.dumps(rows, indent=2))
 
 print()
+# ONE definition of "destroys the message content", used by BOTH tests below. Keeping
+# two copies is what broke the l6h run: the fidelity verdict was corrected to exclude
+# `shuffled` and the oracle's floor three lines above it was not, so the oracle failed
+# on a floor of 0.0059 that WAS the working channel.
+#
+# `shuffled` is excluded on purpose. It permutes positions while preserving every token,
+# and the predicate here is order-invariant, so it scores at oracle level. A payload-
+# preserving transform cannot serve as a floor for either test.
+CTRL = ('mismatched', 'zero', 'random', 'NO MESSAGE')
 orc = rows['token oracle']
-inert = min(rows[k]['kl'] for k in ('shuffled', 'zero', 'random'))
+inert = min(rows[k]['kl'] for k in CTRL)
 # The oracle splices the REAL message tokens at the message position. It should
 # reproduce the natural prompt up to tokenizer boundary effects at the splice seams,
-# so a small non-zero KL is expected -- but it must be far below any inert payload,
-# otherwise the splice itself is what is moving behaviour.
+# so a small non-zero KL is expected -- but it must be far below any content-destroying
+# payload, otherwise the splice itself is what is moving behaviour.
 if orc['kl'] > 0.05 or orc['top1'] < 0.95 or orc['kl'] > inert / 20:
     stop_now('The splice does not reproduce the natural prompt.',
              f"Oracle KL {orc['kl']:.4f}, top-1 {orc['top1']:.3f}, inert floor "
@@ -1221,7 +1230,6 @@ print(f"ORACLE PASS — spliced text reproduces the natural prompt "
 # `mismatched` is the control that was missing: the same codec, same scale, same length,
 # same distribution -- content from a DIFFERENT message. If trained beats mismatched, the
 # channel transmits this message rather than merely something message-shaped.
-CTRL = ('mismatched', 'zero', 'random', 'NO MESSAGE')
 tr = rows['trained']
 better_kl   = all(tr['kl']   <  rows[c]['kl']   for c in CTRL)
 better_top1 = all(tr['top1'] >= rows[c]['top1'] for c in CTRL)
