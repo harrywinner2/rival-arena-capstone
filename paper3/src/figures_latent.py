@@ -45,10 +45,14 @@ ARMS = [
 
 
 def f3():
-    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.9))
+    # LNCS text width is 122mm = 4.8in. Drawing at 7in and scaling to \textwidth
+    # shrank the tick fonts to ~5.5pt. Stack the panels instead so the figure is
+    # natively column-width and the labels render at their true size.
+    fig, axes = plt.subplots(2, 1, figsize=(4.75, 4.5))
     for ax, idx, title, xlab, ref in (
-            (axes[0], 1, "Bertrand market", "collusion index $K$", 0.585),
-            (axes[1], 2, "Prisoner's dilemma", "lock-in proportion", 0.250)):
+            (axes[0], 1, "Bertrand market  (collusion index $K$)", "$K$", 0.585),
+            (axes[1], 2, "Prisoner's dilemma  (lock-in proportion)",
+             "lock-in", 0.250)):
         y = np.arange(len(ARMS))[::-1]
         vals = [a[idx] for a in ARMS]
         cols = [a[3] for a in ARMS]
@@ -74,9 +78,8 @@ def f3():
                     fontsize=7.5, color=INK, va="center",
                     arrowprops=dict(arrowstyle="-[, widthB=1.35, lengthB=0.35",
                                     lw=0.9, color=INK))
-    fig.text(0.5, -0.06, "dotted line = no channel.  Text and latent proposal arms "
-             "coincide to three decimals in both games.",
-             ha="center", fontsize=7.5, color=MUTED)
+    fig.text(0.5, -0.03, "dotted line = no channel", ha="center",
+             fontsize=7, color=MUTED)
     fig.tight_layout()
     fig.savefig(FIG / "f3_latent_transfer.pdf")
     plt.close(fig)

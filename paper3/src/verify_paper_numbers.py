@@ -32,12 +32,22 @@ def main() -> int:
         pair = lambda a, b: sum(p - q for p, q in zip(by[a], by[b])) / len(by[a])
         row = [l for l in tex.splitlines() if l.startswith(nice) and '&' in l][0]
         cells = [c.strip() for c in row.split('&')]
-        num = lambda c: float(re.search(r'\$(-?\d\.\d+)\$', c).group(1))
+        num = lambda c: float(re.search(r'\$\\?m?a?t?h?b?f?\{?(-?\d\.\d+)', c).group(1))
+        # the no-channel baselines live in the note row under the table, not in a column
+        note = [l for l in tex.splitlines() if 'no-channel baseline' in l][0] + \
+               [l for l in tex.splitlines() if l.strip().startswith('OLMo $')][0] \
+               if any(l.strip().startswith('OLMo $') for l in tex.splitlines()) else \
+               ' '.join(l for l in tex.splitlines() if 'no-channel baseline' in l
+                        or 'OLMo $' in l)
+        short = nice.split('-')[0].split('2.5')[0].replace('OLMo', 'OLMo')
+        m = re.search(re.escape(short) + r'[^$]*\$(\d\.\d+)\$', note)
         for label, a, b in (
-                (f'{nice} no-channel K', mean('none'), num(cells[1])),
-                (f'{nice} proposal-none', pair('text_proposal', 'none'), num(cells[2])),
+                (f'{nice} no-channel K', mean('none'), float(m.group(1)) if m else None),
+                (f'{nice} proposal-none', pair('text_proposal', 'none'), num(cells[1])),
                 (f'{nice} proposal-intention',
-                 pair('text_proposal', 'text_intention'), num(cells[3]))):
+                 pair('text_proposal', 'text_intention'), num(cells[2]))):
+            if b is None:
+                print(f'{label:40s} {a:9.3f}   (not tabulated, skipped)'); continue
             good = abs(a - b) < 0.0015
             ok &= good; checked += 1
             print(f'{label:40s} {a:9.3f} {b:9.3f}  {"ok" if good else "MISMATCH"}')
