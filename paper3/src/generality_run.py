@@ -69,7 +69,12 @@ class Endpoint:
         req = urllib.request.Request(
             self.base + path, data=json.dumps(payload).encode(),
             headers={'Content-Type': 'application/json',
-                     'Authorization': f'Bearer {self.key}'})
+                     'Authorization': f'Bearer {self.key}',
+                     # urllib's default UA is "Python-urllib/3.x", which RunPod's edge
+                     # rejects with a 403 -- the same request via curl succeeds. Without
+                     # this the driver looks like an auth failure and is not one.
+                     'User-Agent': 'rival-arena-generality/1.0',
+                     'Accept': 'application/json'})
         last = None
         for a in range(self.retries):
             try:
@@ -234,6 +239,21 @@ def main():
                 d = [p - q for p, q in zip(x, y)]
                 lo, hi = boot_ci(d)
                 print(f'    {name:22s} {sum(d)/len(d):+.3f}  [{lo:+.3f}, {hi:+.3f}]')
+    # Capability floor, same discipline as L6's gate: a model that never reaches the
+    # outcome under ANY arm cannot inform about the manipulation, and its flat contrast
+    # is a floor rather than a refutation. Llama-3.1-8B never locks in on IPD (0/60).
+    ipd = [r for r in rows if r['kind'] == 'ipd']
+    if ipd and not any(r['lockin'] == 1.0 for r in ipd):
+        mc = sum(r['value'] for r in ipd) / len(ipd)
+        print(f'\n  *** IPD CAPABILITY FLOOR: 0/{len(ipd)} matches reach lock-in in any '
+              f'arm (mean cooperation {mc:.3f}).\n      This model cannot sustain '
+              f'cooperation here, so its IPD contrast is uninterpretable\n      as '
+              f'evidence about the channel. Report as a floor, not as a null. ***')
+    bert = [r for r in rows if r['kind'] == 'bertrand']
+    if bert:
+        ks = [r['value'] for r in bert]
+        print(f'  bertrand K range {min(ks):.2f}-{max(ks):.2f} '
+              f'(headroom matters: a baseline near 1.0 compresses any effect)')
     print(f'  refusals: {sum(r.get("refusals", 0) for r in rows)} | '
           f'endpoint retries: {ep.errors}')
 
